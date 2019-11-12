@@ -1,0 +1,12 @@
+[submodule "ext/libminecraft-file"]
+	path = ext/libminecraft-file
+	url = https://github.com/kbinani/libminecraft-file.git
+[submodule "ext/svpng"]
+	path = ext/svpng
+	url = https://github.com/miloyip/svpng.git
+[submodule "ext/hwm.task"]
+	path = ext/hwm.task
+	url = https://github.com/hotwatermorning/hwm.task.git
+[submodule "ext/colormap-shaders"]
+	path = ext/colormap-shaders
+	url = https://github.com/kbinani/colormap-shaders.git
