@@ -305,11 +305,15 @@ struct Options {
     float waterDiffusion;
 };
 
-static void RegionToPng(shared_ptr<Region> const& region, string png) {
-    bool error = false;
-    
-    int const width = 512;
-    int const height = 512;
+static string RegionFileName(string world, int regionX, int regionZ) {
+    ostringstream fileName;
+    fileName << world << "/region/r." << regionX << "." << regionZ << ".mca";
+    return fileName.str();
+}
+
+static void RegionToPng(string world, int regionX, int regionZ, string png) {
+    int const width = 513;
+    int const height = 513;
     
     vector<uint8_t> heightMap(width * height, 0);
     vector<Color> pixels(width * height, Color::FromFloat(0, 0, 0, 1));
@@ -318,9 +322,15 @@ static void RegionToPng(shared_ptr<Region> const& region, string png) {
     Color *pixelsPtr = pixels.data();
     float *lightPtr = light.data();
 
-    int const minX = region->minBlockX();
-    int const minZ = region->minBlockZ();
-    
+    shared_ptr<Region> region = Region::MakeRegion(RegionFileName(world, regionX, regionZ));
+    if (!region) {
+        return;
+    }
+
+    int const minX = region->minBlockX() - 1;
+    int const minZ = region->minBlockZ() - 1;
+            
+    bool error = false;
     region->loadAllChunks(error, [=](Chunk const& chunk) {
         Color const waterColor(69, 91, 211);
         float const waterDiffusion = 0.02;
@@ -387,77 +397,112 @@ static void RegionToPng(shared_ptr<Region> const& region, string png) {
         return true;
     });
 
-    vector<uint32_t> img(width * height, Color(0, 0, 0, 0).color());
+    for (int x = 1; x < width; x++) {
+        int z1 = 1;
+        int i1 = z1 * width + x;
+        int i0 = x;
+        heightMap[i0] = heightMap[i1];
+    }
+    for (int z = 1; z < height; z++) {
+        int x1 = 1;
+        int i1 = z * width + x1;
+        int i0 = (z - 1) * width + x1;
+        heightMap[i0] = heightMap[i1];
+    }
 
-    for (int z = 0; z < height; z++) {
-        for (int x = 0; x < width; x++) {
+    shared_ptr<Region> northRegion = Region::MakeRegion(RegionFileName(world, regionX, regionZ - 1));
+    if (northRegion) {
+        for (int lcx = 0; lcx < 32; lcx++) {
+            bool e = false;
+            northRegion->loadChunk(lcx, 31, e, [=](Chunk const& chunk) {
+                int const z = chunk.maxBlockZ();
+                for (int lbx = 0; lbx < 16; lbx++) {
+                    int const x = chunk.minBlockX() + lbx;
+                    int waterDepth = 0;
+                    for (int y = 255; y >= 0; y--) {
+                        auto block = chunk.blockIdAt(x, y, z);
+                        if (!block) {
+                            continue;
+                        }
+                        if (block == blocks::minecraft::water || block == blocks::minecraft::bubble_column) {
+                            waterDepth++;
+                            continue;
+                        }
+                        if (transparentBlocks.find(block) != transparentBlocks.end()) {
+                            continue;
+                        }
+                        if (plantBlocks.find(block) != plantBlocks.end()) {
+                            continue;
+                        }
+                        auto it = blockToColor.find(block);
+                        if (it == blockToColor.end()) {
+                            cerr << "Unknown block: " << block << endl;
+                        } else {
+                            int const idx = (z - minZ) * width + (x - minX);
+                            if (waterDepth == 0) {
+                                heightMapPtr[idx] = y;
+                            }
+                            break;
+                        }
+                    }
+                }
+                return true;
+            });
+        }
+    }
+    
+    shared_ptr<Region> westRegion = Region::MakeRegion(RegionFileName(world, regionX - 1, regionZ));
+    if (westRegion) {
+        for (int lcz = 0; lcz < 32; lcz++) {
+            bool e = false;
+            westRegion->loadChunk(31, lcz, e, [=](Chunk const& chunk) {
+                int const x = chunk.maxBlockX();
+                for (int lbz = 0; lbz < 16; lbz++) {
+                    int const z = chunk.minBlockZ() + lbz;
+                    int waterDepth = 0;
+                    for (int y = 255; y >= 0; y--) {
+                        auto block = chunk.blockIdAt(x, y, z);
+                        if (!block) {
+                            continue;
+                        }
+                        if (block == blocks::minecraft::water || block == blocks::minecraft::bubble_column) {
+                            waterDepth++;
+                            continue;
+                        }
+                        if (transparentBlocks.find(block) != transparentBlocks.end()) {
+                            continue;
+                        }
+                        if (plantBlocks.find(block) != plantBlocks.end()) {
+                            continue;
+                        }
+                        auto it = blockToColor.find(block);
+                        if (it == blockToColor.end()) {
+                            cerr << "Unknown block: " << block << endl;
+                        } else {
+                            int const idx = (z - minZ) * width + (x - minX);
+                            if (waterDepth == 0) {
+                                heightMapPtr[idx] = y;
+                            }
+                            break;
+                        }
+                    }
+                }
+                return true;
+            });
+        }
+    }
+    
+    vector<uint32_t> img(512 * 512, Color(0, 0, 0, 0).color());
+
+    for (int z = 1; z < height; z++) {
+        for (int x = 1; x < width; x++) {
             int const idx = z * width + x;
             uint8_t const h = heightMap[idx];
             Color c = pixels[idx];
             Color color = c;
-            if (h == 0) {
-                Color cNorth = c;
-                Color cEast = c;
-                Color cSouth = c;
-                Color cWest = c;
-                if (z > 1) {
-                    uint8_t hh = heightMap[(z - 1) * width + x];
-                    if (hh == 0) {
-                        cNorth = pixels[(z - 1) * width + x];
-                    }
-                }
-                if (z + 1 < height) {
-                    uint8_t hh = heightMap[(z + 1) * width + x];
-                    if (hh == 0) {
-                        cSouth = pixels[(z + 1) * width + x];
-                    }
-                }
-                if (x > 1) {
-                    auto hh = heightMap[z * width + x - 1];
-                    if (hh == 0) {
-                        cWest = pixels[z * width + x - 1];
-                    }
-                }
-                if (x + 1 < width) {
-                    auto hh = heightMap[z * width + x + 1];
-                    if (hh > 0) {
-                        cEast = pixels[z * width + x + 1];
-                    }
-                }
-                float r = (c.fR * c.fA + cNorth.fR * cNorth.fA / 4 + cEast.fR * cEast.fA / 4 + cSouth.fR * cSouth.fA / 4 + cWest.fR * cWest.fA / 4) / 2;
-                float g = (c.fG * c.fA + cNorth.fG * cNorth.fA / 4 + cEast.fG * cEast.fA / 4 + cSouth.fG * cSouth.fA / 4 + cWest.fG * cWest.fA / 4) / 2;
-                float b = (c.fB * c.fA + cNorth.fB * cNorth.fA / 4 + cEast.fB * cEast.fA / 4 + cSouth.fB * cSouth.fA / 4 + cWest.fB * cWest.fA / 4) / 2;
-                color = Color::FromFloat(r, g, b, 1);
-            }
 
-            uint8_t hNorth = h;
-            uint8_t hEast = h;
-            uint8_t hSouth = h;
-            uint8_t hWest = h;
-            if (z > 1) {
-                uint8_t hh = heightMap[(z - 1) * width + x];
-                if (hh > 0) {
-                    hNorth = hh;
-                }
-            }
-            if (z + 1 < height) {
-                uint8_t hh = heightMap[(z + 1) * width + x];
-                if (hh > 0) {
-                    hSouth = hh;
-                }
-            }
-            if (x > 1) {
-                auto hh = heightMap[z * width + x - 1];
-                if (hh > 0) {
-                    hWest = hh;
-                }
-            }
-            if (x + 1 < width) {
-                auto hh = heightMap[z * width + x + 1];
-                if (hh > 0) {
-                    hEast = hh;
-                }
-            }
+            uint8_t hNorth = heightMap[(z - 1) * width + x];
+            uint8_t hWest = heightMap[z * width + x - 1];
             int score = 0; // +: bright, -: dark
             if (hNorth > h) score--;
             if (hNorth < h) score++;
@@ -479,7 +524,8 @@ static void RegionToPng(shared_ptr<Region> const& region, string png) {
             }
 
             float const l = light[idx];
-            img[idx] = Color::FromFloat(color.fR, color.fG, color.fB, color.fA * l).color();
+            int i = (z - 1) * 512 + (x - 1);
+            img[i] = Color::FromFloat(color.fR, color.fG, color.fB, color.fA * l).color();
         }
     }
 
@@ -487,16 +533,33 @@ static void RegionToPng(shared_ptr<Region> const& region, string png) {
     if (!out) {
         return;
     }
-    svpng(out, width, height, (unsigned char *)img.data(), 1);
+    svpng(out, 512, 512, (unsigned char *)img.data(), 1);
     fclose(out);
 }
 
+static void PrintDescription() {
+    
+}
+
 int main(int argc, char *argv[]) {
-    if (argc < 3) {
-        return 1;
+    string input;
+    string output;
+
+    int opt;
+    opterr = 0;
+    while ((opt = getopt(argc, argv, "w:o:")) != -1) {
+        switch (opt) {
+            case 'w':
+                input = optarg;
+                break;
+            case 'o':
+                output = optarg;
+                break;
+            default:
+                PrintDescription();
+                exit(1);
+        }
     }
-    auto const input = string(argv[1]);
-    auto const output = string(argv[2]);
 
     World world(input);
 
@@ -506,8 +569,8 @@ int main(int argc, char *argv[]) {
     world.eachRegions([=, &q, &futures](shared_ptr<Region> const& region) {
         futures.emplace_back(q.enqueue([=](shared_ptr<Region> region) {
             ostringstream name;
-            name << output << "/mca." << region->fX << "." << region->fZ << ".png";
-            RegionToPng(region, name.str());
+            name << output << "/r." << region->fX << "." << region->fZ << ".png";
+            RegionToPng(input, region->fX, region->fZ, name.str());
         }, region));
     });
 
