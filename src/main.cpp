@@ -9,6 +9,7 @@
 
 using namespace std;
 using namespace mcfile;
+namespace fs = std::filesystem;
 
 static std::set<mcfile::blocks::BlockId> const plantBlocks = {
     mcfile::blocks::minecraft::beetroots,
@@ -122,13 +123,41 @@ struct Options {
     float waterDiffusion;
 };
 
-static string RegionFileName(string world, int regionX, int regionZ) {
-    ostringstream fileName;
-    fileName << world << "/region/r." << regionX << "." << regionZ << ".mca";
-    return fileName.str();
+static void PrintDescription() {
+    
 }
 
-static void RegionToPng(string world, int regionX, int regionZ, string png) {
+static shared_ptr<Chunk> LoadChunk(fs::path const& chunkFilePath, int chunkX, int chunkZ) {
+    int const fLength = fs::file_size(chunkFilePath);
+    vector<uint8_t> buffer(fLength);
+    {
+        auto stream = make_shared<mcfile::detail::FileStream>(chunkFilePath.string());
+        mcfile::detail::StreamReader reader(stream);
+        if (!reader.read(buffer)) {
+            return nullptr;
+        }
+        if (!mcfile::detail::Compression::decompress(buffer)) {
+            return nullptr;
+        }
+    }
+    auto root = make_shared<nbt::CompoundTag>();
+    auto bs = make_shared<mcfile::detail::ByteStream>(buffer);
+    vector<uint8_t>().swap(buffer);
+    auto sr = make_shared<mcfile::detail::StreamReader>(bs);
+    root->read(*sr);
+    if (!root->valid()) {
+        return nullptr;
+    }
+    return Chunk::MakeChunk(chunkX, chunkZ, *root);
+}
+
+static string ChunkFileName(int chunkX, int chunkZ) {
+    ostringstream name;
+    name << "c." << chunkX << "." << chunkZ << ".nbt.z";
+    return name.str();
+}
+
+static void RegionToPng2(string world, int regionX, int regionZ, string png) {
     int const width = 513;
     int const height = 513;
     
@@ -139,80 +168,86 @@ static void RegionToPng(string world, int regionX, int regionZ, string png) {
     Color *pixelsPtr = pixels.data();
     float *lightPtr = light.data();
 
-    shared_ptr<Region> region = Region::MakeRegion(RegionFileName(world, regionX, regionZ));
-    if (!region) {
-        return;
-    }
+    int const minX = regionX * 512 - 1;
+    int const minZ = regionZ * 512 - 1;
+    
+    for (int localChunkZ = 0; localChunkZ < 32; localChunkZ++) {
+        int const chunkZ = regionZ * 32 + localChunkZ;
+        for (int localChunkX = 0; localChunkX < 32; localChunkX++) {
+            int const chunkX = regionX * 32 + localChunkX;
+            fs::path chunkFilePath = fs::path(world).append("chunk").append(ChunkFileName(chunkX, chunkZ));
+            if (!fs::exists(chunkFilePath)) {
+                continue;
+            }
+            shared_ptr<Chunk> chunk = LoadChunk(chunkFilePath, chunkX, chunkZ);
+            if (!chunk) {
+                continue;
+            }
 
-    int const minX = region->minBlockX() - 1;
-    int const minZ = region->minBlockZ() - 1;
-            
-    bool error = false;
-    region->loadAllChunks(error, [=](Chunk const& chunk) {
-        Color const waterColor(69, 91, 211);
-        float const waterDiffusion = 0.02;
-        colormap::kbinani::Altitude altitude;
-        int const sZ = chunk.minBlockZ();
-        int const eZ = chunk.maxBlockZ();
-        int const sX = chunk.minBlockX();
-        int const eX = chunk.maxBlockX();
-        for (int z = sZ; z <= eZ; z++) {
-            for (int x = sX; x <= eX; x++) {
-                int waterDepth = 0;
-                int airDepth = 0;
-                Color translucentBlock(0, 0, 0, 0);
-                for (int y = 255; y >= 0; y--) {
-                    auto block = chunk.blockIdAt(x, y, z);
-                    if (!block) {
-                        airDepth++;
-                        continue;
-                    }
-                    if (block == blocks::minecraft::water || block == blocks::minecraft::bubble_column) {
-                        if (waterDepth == 0) {
-                            int const idx = (z - minZ) * width + (x - minX);
-                            lightPtr[idx] = LightAt(chunk, x, y + 1, z);
+            Color const waterColor(69, 91, 211);
+            float const waterDiffusion = 0.02;
+            colormap::kbinani::Altitude altitude;
+            int const sZ = chunk->minBlockZ();
+            int const eZ = chunk->maxBlockZ();
+            int const sX = chunk->minBlockX();
+            int const eX = chunk->maxBlockX();
+            for (int z = sZ; z <= eZ; z++) {
+                for (int x = sX; x <= eX; x++) {
+                    int waterDepth = 0;
+                    int airDepth = 0;
+                    Color translucentBlock(0, 0, 0, 0);
+                    for (int y = 255; y >= 0; y--) {
+                        auto block = chunk->blockIdAt(x, y, z);
+                        if (!block) {
+                            airDepth++;
+                            continue;
                         }
-                        waterDepth++;
-                        continue;
-                    }
-                    if (transparentBlocks.find(block) != transparentBlocks.end()) {
-                        airDepth++;
-                        continue;
-                    }
-                    if (plantBlocks.find(block) != plantBlocks.end()) {
-                        airDepth++;
-                        continue;
-                    }
-                    Color c(0, 0, 0);
-                    if (!BlockColor(block, c)) {
-                        cerr << "Unknown block: " << block << endl;
-                    } else {
-                        int const idx = (z - minZ) * width + (x - minX);
-
-                        Color const opaqeBlockColor = c;
-                        Color color(0, 0, 0, 0);
-                        if (waterDepth > 0) {
-                            color = waterColor.diffuse(waterDiffusion, waterDepth);
-                            translucentBlock = Color(0, 0, 0, 0);
-                        } else if (block == blocks::minecraft::grass_block) {
-                            float const v = std::min(std::max((y - 63.0) / 193.0, 0.0), 1.0);
-                            auto c = altitude.getColor(v);
-                            color = Color::FromFloat(c.r, c.g, c.b, 1);
-                            heightMapPtr[idx] = y;
-                            lightPtr[idx] = LightAt(chunk, x, y + 1, z);
+                        if (block == blocks::minecraft::water || block == blocks::minecraft::bubble_column) {
+                            if (waterDepth == 0) {
+                                int const idx = (z - minZ) * width + (x - minX);
+                                lightPtr[idx] = LightAt(*chunk, x, y + 1, z);
+                            }
+                            waterDepth++;
+                            continue;
+                        }
+                        if (transparentBlocks.find(block) != transparentBlocks.end()) {
+                            airDepth++;
+                            continue;
+                        }
+                        if (plantBlocks.find(block) != plantBlocks.end()) {
+                            airDepth++;
+                            continue;
+                        }
+                        Color c(0, 0, 0);
+                        if (!BlockColor(block, c)) {
+                            cerr << "Unknown block: " << block << endl;
                         } else {
-                            color = opaqeBlockColor;
-                            heightMapPtr[idx] = y;
-                            lightPtr[idx] = LightAt(chunk, x, y + 1, z);
+                            int const idx = (z - minZ) * width + (x - minX);
+
+                            Color const opaqeBlockColor = c;
+                            Color color(0, 0, 0, 0);
+                            if (waterDepth > 0) {
+                                color = waterColor.diffuse(waterDiffusion, waterDepth);
+                                translucentBlock = Color(0, 0, 0, 0);
+                            } else if (block == blocks::minecraft::grass_block) {
+                                float const v = std::min(std::max((y - 63.0) / 193.0, 0.0), 1.0);
+                                auto c = altitude.getColor(v);
+                                color = Color::FromFloat(c.r, c.g, c.b, 1);
+                                heightMapPtr[idx] = y;
+                                lightPtr[idx] = LightAt(*chunk, x, y + 1, z);
+                            } else {
+                                color = opaqeBlockColor;
+                                heightMapPtr[idx] = y;
+                                lightPtr[idx] = LightAt(*chunk, x, y + 1, z);
+                            }
+                            pixelsPtr[idx] = Color::Add(color, translucentBlock.withAlphaComponent(0.2));
+                            break;
                         }
-                        pixelsPtr[idx] = Color::Add(color, translucentBlock.withAlphaComponent(0.2));
-                        break;
                     }
                 }
             }
         }
-        return true;
-    });
+    }
 
     for (int x = 1; x < width; x++) {
         int z1 = 1;
@@ -227,85 +262,87 @@ static void RegionToPng(string world, int regionX, int regionZ, string png) {
         heightMap[i0] = heightMap[i1];
     }
 
-    shared_ptr<Region> northRegion = Region::MakeRegion(RegionFileName(world, regionX, regionZ - 1));
-    if (northRegion) {
-        for (int lcx = 0; lcx < 32; lcx++) {
-            bool e = false;
-            northRegion->loadChunk(lcx, 31, e, [=](Chunk const& chunk) {
-                int const z = chunk.maxBlockZ();
-                for (int lbx = 0; lbx < 16; lbx++) {
-                    int const x = chunk.minBlockX() + lbx;
-                    int waterDepth = 0;
-                    for (int y = 255; y >= 0; y--) {
-                        auto block = chunk.blockIdAt(x, y, z);
-                        if (!block) {
-                            continue;
-                        }
-                        if (block == blocks::minecraft::water || block == blocks::minecraft::bubble_column) {
-                            waterDepth++;
-                            continue;
-                        }
-                        if (transparentBlocks.find(block) != transparentBlocks.end()) {
-                            continue;
-                        }
-                        if (plantBlocks.find(block) != plantBlocks.end()) {
-                            continue;
-                        }
-                        Color c(0, 0, 0);
-                        if (!BlockColor(block, c)) {
-                            cerr << "Unknown block: " << block << endl;
-                        } else {
-                            int const idx = (z - minZ) * width + (x - minX);
-                            if (waterDepth == 0) {
-                                heightMapPtr[idx] = y;
-                            }
-                            break;
-                        }
-                    }
+    // 北側
+    for (int lcx = 0; lcx < 32; lcx++) {
+        int const chunkX = regionX * 32 + lcx;
+        int const chunkZ = (regionZ - 1) * 32 + 31;
+        fs::path chunkFilePath = fs::path(world).append("chunk").append(ChunkFileName(chunkX, chunkZ));
+        if (!fs::exists(chunkFilePath)) {
+            continue;
+        }
+        shared_ptr<Chunk> chunk = LoadChunk(chunkFilePath, chunkX, chunkZ);
+        int const z = chunk->maxBlockZ();
+        for (int lbx = 0; lbx < 16; lbx++) {
+            int const x = chunk->minBlockX() + lbx;
+            int waterDepth = 0;
+            for (int y = 255; y >= 0; y--) {
+                auto block = chunk->blockIdAt(x, y, z);
+                if (!block) {
+                    continue;
                 }
-                return true;
-            });
+                if (block == blocks::minecraft::water || block == blocks::minecraft::bubble_column) {
+                    waterDepth++;
+                    continue;
+                }
+                if (transparentBlocks.find(block) != transparentBlocks.end()) {
+                    continue;
+                }
+                if (plantBlocks.find(block) != plantBlocks.end()) {
+                    continue;
+                }
+                Color c(0, 0, 0);
+                if (!BlockColor(block, c)) {
+                    cerr << "Unknown block: " << block << endl;
+                } else {
+                    int const idx = (z - minZ) * width + (x - minX);
+                    if (waterDepth == 0) {
+                        heightMapPtr[idx] = y;
+                    }
+                    break;
+                }
+            }
         }
     }
     
-    shared_ptr<Region> westRegion = Region::MakeRegion(RegionFileName(world, regionX - 1, regionZ));
-    if (westRegion) {
-        for (int lcz = 0; lcz < 32; lcz++) {
-            bool e = false;
-            westRegion->loadChunk(31, lcz, e, [=](Chunk const& chunk) {
-                int const x = chunk.maxBlockX();
-                for (int lbz = 0; lbz < 16; lbz++) {
-                    int const z = chunk.minBlockZ() + lbz;
-                    int waterDepth = 0;
-                    for (int y = 255; y >= 0; y--) {
-                        auto block = chunk.blockIdAt(x, y, z);
-                        if (!block) {
-                            continue;
-                        }
-                        if (block == blocks::minecraft::water || block == blocks::minecraft::bubble_column) {
-                            waterDepth++;
-                            continue;
-                        }
-                        if (transparentBlocks.find(block) != transparentBlocks.end()) {
-                            continue;
-                        }
-                        if (plantBlocks.find(block) != plantBlocks.end()) {
-                            continue;
-                        }
-                        Color c(0, 0, 0);
-                        if (!BlockColor(block, c)) {
-                            cerr << "Unknown block: " << block << endl;
-                        } else {
-                            int const idx = (z - minZ) * width + (x - minX);
-                            if (waterDepth == 0) {
-                                heightMapPtr[idx] = y;
-                            }
-                            break;
-                        }
-                    }
+    // 西側
+    for (int lcz = 0; lcz < 32; lcz++) {
+        int const chunkX = (regionX - 1) * 32 + 31;
+        int const chunkZ = regionZ * 32 + lcz;
+        fs::path chunkFilePath = fs::path(world).append("chunk").append(ChunkFileName(chunkX, chunkZ));
+        if (!fs::exists(chunkFilePath)) {
+            continue;
+        }
+        shared_ptr<Chunk> chunk = LoadChunk(chunkFilePath, chunkX, chunkZ);
+        int const x = chunk->maxBlockX();
+        for (int lbz = 0; lbz < 16; lbz++) {
+            int const z = chunk->minBlockZ() + lbz;
+            int waterDepth = 0;
+            for (int y = 255; y >= 0; y--) {
+                auto block = chunk->blockIdAt(x, y, z);
+                if (!block) {
+                    continue;
                 }
-                return true;
-            });
+                if (block == blocks::minecraft::water || block == blocks::minecraft::bubble_column) {
+                    waterDepth++;
+                    continue;
+                }
+                if (transparentBlocks.find(block) != transparentBlocks.end()) {
+                    continue;
+                }
+                if (plantBlocks.find(block) != plantBlocks.end()) {
+                    continue;
+                }
+                Color c(0, 0, 0);
+                if (!BlockColor(block, c)) {
+                    cerr << "Unknown block: " << block << endl;
+                } else {
+                    int const idx = (z - minZ) * width + (x - minX);
+                    if (waterDepth == 0) {
+                        heightMapPtr[idx] = y;
+                    }
+                    break;
+                }
+            }
         }
     }
     
@@ -354,10 +391,6 @@ static void RegionToPng(string world, int regionX, int regionZ, string png) {
     fclose(out);
 }
 
-static void PrintDescription() {
-    
-}
-
 int main(int argc, char *argv[]) {
     string input;
     string output;
@@ -378,22 +411,36 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    World world(input);
+    namespace fs = std::filesystem;
+    auto chunkDir = fs::path(input).append("chunk");
+    set<pair<int, int>> existingRegions;
+    for (auto const& path : fs::directory_iterator(chunkDir)) {
+        fs::path p = path.path();
+        int x, z;
+        if (sscanf(p.filename().c_str(), "c.%d.%d.x", &x, &z) != 2) {
+            continue;
+        }
+        int regionX = Coordinate::RegionFromChunk(x);
+        int regionZ = Coordinate::RegionFromChunk(z);
+        existingRegions.insert(make_pair(regionX, regionZ));
+    }
 
     hwm::task_queue q(thread::hardware_concurrency());
     vector<future<void>> futures;
 
-    world.eachRegions([=, &q, &futures](shared_ptr<Region> const& region) {
-        futures.emplace_back(q.enqueue([=](shared_ptr<Region> region) {
+    for (auto it : existingRegions) {
+        int regionX = it.first;
+        int regionZ = it.second;
+        futures.emplace_back(q.enqueue([=](int regionX, int regionZ) {
             ostringstream name;
-            name << output << "/r." << region->fX << "." << region->fZ << ".png";
-            RegionToPng(input, region->fX, region->fZ, name.str());
-        }, region));
-    });
-
+            name << "r." << regionX << "." << regionZ << ".png";
+            fs::path png = fs::path(output).append(name.str());
+            RegionToPng2(input, regionX, regionZ, png.string());
+        }, regionX, regionZ));
+    }
+    
     for (auto& f : futures) {
         f.get();
     }
-
     return 0;
 }
