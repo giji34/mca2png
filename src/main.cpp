@@ -417,7 +417,7 @@ int main(int argc, char *argv[]) {
     for (auto const& path : fs::directory_iterator(chunkDir)) {
         fs::path p = path.path();
         int x, z;
-        if (sscanf(p.filename().c_str(), "c.%d.%d.x", &x, &z) != 2) {
+        if (sscanf(p.filename().c_str(), "c.%d.%d.nbt.x", &x, &z) != 2) {
             continue;
         }
         int regionX = Coordinate::RegionFromChunk(x);
