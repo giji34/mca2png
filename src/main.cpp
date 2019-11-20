@@ -2,6 +2,7 @@
 #include "minecraft-file.hpp"
 #include <math.h>
 #include <set>
+#include <fstream>
 #include "svpng.inc"
 #include "hwm/task/task_queue.hpp"
 #include "colormap/colormap.h"
@@ -105,6 +106,9 @@ static std::set<mcfile::blocks::BlockId> const transparentBlocks = {
     mcfile::blocks::minecraft::tripwire,
 };
 
+static int const kVisibleRadius = 128;
+static vector<pair<int, int>> kLandmarks;
+
 static float LightAt(Chunk const& chunk, int x, int y, int z) {
     int const envLight = 8;
     int const defaultLight = 15;
@@ -118,14 +122,6 @@ static float LightAt(Chunk const& chunk, int x, int y, int z) {
     return l;
 }
 
-struct Options {
-    Color waterColor;
-    float waterDiffusion;
-};
-
-static void PrintDescription() {
-    
-}
 
 static shared_ptr<Chunk> LoadChunk(fs::path const& chunkFilePath, int chunkX, int chunkZ) {
     int const fLength = fs::file_size(chunkFilePath);
@@ -155,6 +151,17 @@ static string ChunkFileName(int chunkX, int chunkZ) {
     ostringstream name;
     name << "c." << chunkX << "." << chunkZ << ".nbt.z";
     return name.str();
+}
+
+static float BrightnessByDistanceFromLandmark(float distance) {
+    if (distance <= kVisibleRadius) {
+        return 1;
+    } else if (distance > 2 * kVisibleRadius) {
+        return 0;
+    } else {
+        float x = 1 - (distance - kVisibleRadius) / kVisibleRadius;
+        return (erff(sqrtf(M_PI) * 2 * x - 2) + 1) * 0.5;
+    }
 }
 
 static void RegionToPng2(string world, int regionX, int regionZ, string png) {
@@ -349,7 +356,9 @@ static void RegionToPng2(string world, int regionX, int regionZ, string png) {
     vector<uint32_t> img(512 * 512, Color(0, 0, 0, 0).color());
 
     for (int z = 1; z < height; z++) {
+        int const blockZ = regionZ * 512 + z - 1;
         for (int x = 1; x < width; x++) {
+            int const blockX = regionX * 512 + x - 1;
             int const idx = z * width + x;
             uint8_t const h = heightMap[idx];
             Color c = pixels[idx];
@@ -363,21 +372,33 @@ static void RegionToPng2(string world, int regionX, int regionZ, string png) {
             if (hWest > h) score--;
             if (hWest < h) score++;
 
+            float minDistance = numeric_limits<float>::max();
+            for (int j = 0; j < kLandmarks.size(); j++) {
+                pair<int, int> const& landmark = kLandmarks[j];
+                float const distance = hypotf(blockX - get<0>(landmark), blockZ - get<1>(landmark));
+                minDistance = min(minDistance, distance);
+            }
+            float const brightness = BrightnessByDistanceFromLandmark(minDistance);
+
             if (score > 0) {
                 float coeff = 1.2;
                 HSV hsv = color.toHSV();
-                hsv.fV = hsv.fV * coeff;
+                hsv.fV = hsv.fV * coeff * brightness;
                 Color cc = Color::FromHSV(hsv);
                 color = cc;
             } else if (score < 0) {
                 float coeff = 0.8;
                 HSV hsv = color.toHSV();
-                hsv.fV = hsv.fV * coeff;
+                hsv.fV = hsv.fV * coeff * brightness;
                 Color cc = Color::FromHSV(hsv);
                 color = cc;
+            } else {
+                HSV hsv = color.toHSV();
+                hsv.fV = hsv.fV * brightness;
+                color = Color::FromHSV(hsv);
             }
-
-            float const l = light[idx];
+            
+            float const l = light[idx] * brightness;
             int i = (z - 1) * 512 + (x - 1);
             img[i] = Color::FromFloat(color.fR, color.fG, color.fB, color.fA * l).color();
         }
@@ -391,13 +412,18 @@ static void RegionToPng2(string world, int regionX, int regionZ, string png) {
     fclose(out);
 }
 
+static void PrintDescription() {
+    cerr << "mca2png -w [world directory] -o [output directory] -l [path to 'landmarks.tsv']" << endl;
+}
+
 int main(int argc, char *argv[]) {
     string input;
     string output;
+    string landmarksFile;
 
     int opt;
     opterr = 0;
-    while ((opt = getopt(argc, argv, "w:o:")) != -1) {
+    while ((opt = getopt(argc, argv, "w:o:l:")) != -1) {
         switch (opt) {
             case 'w':
                 input = optarg;
@@ -405,12 +431,37 @@ int main(int argc, char *argv[]) {
             case 'o':
                 output = optarg;
                 break;
+            case 'l':
+                landmarksFile = optarg;
+                break;
             default:
                 PrintDescription();
-                exit(1);
+                return 1;
         }
     }
 
+    if (input.empty() || output.empty() || landmarksFile.empty()) {
+        PrintDescription();
+        return 1;
+    }
+    
+    {
+        ifstream stream(landmarksFile.c_str());
+        string line;
+        while (getline(stream, line)) {
+            int x, z;
+            if (sscanf(line.c_str(), "%d\t%d", &x, &z) != 2) {
+                continue;
+            }
+            kLandmarks.push_back(make_pair(x, z));
+        }
+    }
+    
+    if (kLandmarks.empty()) {
+        cerr << "landmarks.tsv is empty" << endl;
+        return 1;
+    }
+    
     namespace fs = std::filesystem;
     auto chunkDir = fs::path(input).append("chunk");
     set<pair<int, int>> existingRegions;
