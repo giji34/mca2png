@@ -354,6 +354,7 @@ static void RegionToPng2(string world, int regionX, int regionZ, string png) {
     }
     
     vector<uint32_t> img(512 * 512, Color(0, 0, 0, 0).color());
+    bool blackout = true;
 
     for (int z = 1; z < height; z++) {
         int const blockZ = regionZ * 512 + z - 1;
@@ -399,11 +400,18 @@ static void RegionToPng2(string world, int regionX, int regionZ, string png) {
             }
             
             float const l = light[idx] * brightness;
+            if (l > 0) {
+                blackout = false;
+            }
             int i = (z - 1) * 512 + (x - 1);
             img[i] = Color::FromFloat(color.fR, color.fG, color.fB, color.fA * l).color();
         }
     }
 
+    if (blackout) {
+        return;
+    }
+    
     FILE *out = fopen(png.c_str(), "wb");
     if (!out) {
         return;
