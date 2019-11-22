@@ -168,6 +168,25 @@ static void RegionToPng2(string world, int regionX, int regionZ, string png) {
     int const width = 513;
     int const height = 513;
     
+    vector<pair<int, int>> nearbyLandmarks;
+    {
+        int const minBlockX = regionX * 512 - kVisibleRadius * 2;
+        int const maxBlockX = regionX * 512 + 511 + kVisibleRadius * 2;
+        
+        int const minBlockZ = regionZ * 512 - kVisibleRadius * 2;
+        int const maxBlockZ = regionZ * 512 + 511 + kVisibleRadius * 2;
+        for (int i = 0; i < kLandmarks.size(); i++) {
+        }
+        for (auto it = kLandmarks.begin(); it != kLandmarks.end(); it++) {
+            if (minBlockX <= it->first && it->first <= maxBlockX && minBlockZ <= it->second && it->second <= maxBlockZ) {
+                nearbyLandmarks.push_back(*it);
+            }
+        }
+        if (nearbyLandmarks.empty()) {
+            return;
+        }
+    }
+    
     vector<uint8_t> heightMap(width * height, 0);
     vector<Color> pixels(width * height, Color::FromFloat(0, 0, 0, 1));
     vector<float> light(width * height, 0);
