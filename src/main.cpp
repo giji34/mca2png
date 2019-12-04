@@ -228,7 +228,7 @@ static void RegionToPng2(string world, int regionX, int regionZ, string png) {
                             airDepth++;
                             continue;
                         }
-                        if (block == blocks::minecraft::water || block == blocks::minecraft::bubble_column) {
+                        if (block == blocks::minecraft::water || block == blocks::minecraft::bubble_column || block == blocks::minecraft::kelp) {
                             if (waterDepth == 0) {
                                 int const idx = (z - minZ) * width + (x - minX);
                                 lightPtr[idx] = LightAt(*chunk, x, y + 1, z);
