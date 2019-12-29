@@ -170,6 +170,20 @@ static float BrightnessByDistanceFromLandmark(float distance) {
     }
 }
 
+static int SkyLevel(int dimension, Chunk const& chunk, int x, int z) {
+    if (dimension != -1) {
+        return 255;
+    }
+    for (int y = 127; y >= 0; y--) {
+        auto block = chunk.blockIdAt(x, y, z);
+        if (!block) continue;
+        if (block == mcfile::blocks::minecraft::air) {
+            return y;
+        }
+    }
+    return 0;
+}
+
 static void RegionToPng2(string world, int dimension, int regionX, int regionZ, string png) {
     int const width = 513;
     int const height = 513;
@@ -228,18 +242,7 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
                     int waterDepth = 0;
                     int airDepth = 0;
                     Color translucentBlock(0, 0, 0, 0);
-                    int yini = 255;
-                    if (dimension == -1) {
-                        yini = 127;
-                        for (int y = 127; y >= 0; y--) {
-                            auto block = chunk->blockIdAt(x, y, z);
-                            if (!block) continue;
-                            if (block == mcfile::blocks::minecraft::air) {
-                                yini = y;
-                                break;
-                            }
-                        }
-                    }
+                    int const yini = SkyLevel(dimension, *chunk, x, z);
                     for (int y = yini; y >= 0; y--) {
                         auto block = chunk->blockIdAt(x, y, z);
                         if (!block) {
@@ -319,7 +322,8 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
         for (int lbx = 0; lbx < 16; lbx++) {
             int const x = chunk->minBlockX() + lbx;
             int waterDepth = 0;
-            for (int y = 255; y >= 0; y--) {
+            int const yini = SkyLevel(dimension, *chunk, x, z);
+            for (int y = yini; y >= 0; y--) {
                 auto block = chunk->blockIdAt(x, y, z);
                 if (!block) {
                     continue;
@@ -361,7 +365,8 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
         for (int lbz = 0; lbz < 16; lbz++) {
             int const z = chunk->minBlockZ() + lbz;
             int waterDepth = 0;
-            for (int y = 255; y >= 0; y--) {
+            int const yini = SkyLevel(dimension, *chunk, x, z);
+            for (int y = yini; y >= 0; y--) {
                 auto block = chunk->blockIdAt(x, y, z);
                 if (!block) {
                     continue;
