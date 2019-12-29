@@ -106,8 +106,14 @@ static std::set<mcfile::blocks::BlockId> const transparentBlocks = {
     mcfile::blocks::minecraft::tripwire,
 };
 
+struct Landmark {
+    int dimension;
+    int x;
+    int z;
+};
+
 static int const kVisibleRadius = 128;
-static vector<pair<int, int>> kLandmarks;
+static vector<Landmark> kLandmarks;
 
 static float LightAt(Chunk const& chunk, int x, int y, int z) {
     int const envLight = 8;
@@ -164,11 +170,11 @@ static float BrightnessByDistanceFromLandmark(float distance) {
     }
 }
 
-static void RegionToPng2(string world, int regionX, int regionZ, string png) {
+static void RegionToPng2(string world, int dimension, int regionX, int regionZ, string png) {
     int const width = 513;
     int const height = 513;
     
-    vector<pair<int, int>> nearbyLandmarks;
+    vector<Landmark> nearbyLandmarks;
     {
         int const minBlockX = regionX * 512 - kVisibleRadius * 2;
         int const maxBlockX = regionX * 512 + 511 + kVisibleRadius * 2;
@@ -178,7 +184,7 @@ static void RegionToPng2(string world, int regionX, int regionZ, string png) {
         for (int i = 0; i < kLandmarks.size(); i++) {
         }
         for (auto it = kLandmarks.begin(); it != kLandmarks.end(); it++) {
-            if (minBlockX <= it->first && it->first <= maxBlockX && minBlockZ <= it->second && it->second <= maxBlockZ) {
+            if (dimension == it->dimension && minBlockX <= it->x && it->x <= maxBlockX && minBlockZ <= it->z && it->z <= maxBlockZ) {
                 nearbyLandmarks.push_back(*it);
             }
         }
@@ -222,7 +228,19 @@ static void RegionToPng2(string world, int regionX, int regionZ, string png) {
                     int waterDepth = 0;
                     int airDepth = 0;
                     Color translucentBlock(0, 0, 0, 0);
-                    for (int y = 255; y >= 0; y--) {
+                    int yini = 255;
+                    if (dimension == -1) {
+                        yini = 127;
+                        for (int y = 127; y >= 0; y--) {
+                            auto block = chunk->blockIdAt(x, y, z);
+                            if (!block) continue;
+                            if (block == mcfile::blocks::minecraft::air) {
+                                yini = y;
+                                break;
+                            }
+                        }
+                    }
+                    for (int y = yini; y >= 0; y--) {
                         auto block = chunk->blockIdAt(x, y, z);
                         if (!block) {
                             airDepth++;
@@ -393,9 +411,12 @@ static void RegionToPng2(string world, int regionX, int regionZ, string png) {
             if (hWest < h) score++;
 
             float minDistance = numeric_limits<float>::max();
-            for (int j = 0; j < kLandmarks.size(); j++) {
-                pair<int, int> const& landmark = kLandmarks[j];
-                float const distance = hypotf(blockX - get<0>(landmark), blockZ - get<1>(landmark));
+            for (int j = 0; j < nearbyLandmarks.size(); j++) {
+                Landmark const& landmark = nearbyLandmarks[j];
+                if (landmark.dimension != dimension) {
+                    continue;
+                }
+                float const distance = hypotf(blockX - landmark.x, blockZ - landmark.z);
                 minDistance = min(minDistance, distance);
             }
             float const brightness = BrightnessByDistanceFromLandmark(minDistance);
@@ -440,17 +461,18 @@ static void RegionToPng2(string world, int regionX, int regionZ, string png) {
 }
 
 static void PrintDescription() {
-    cerr << "mca2png -w [world directory] -o [output directory] -l [path to 'landmarks.tsv']" << endl;
+    cerr << "mca2png -w [world directory] -o [output directory] -l [path to 'landmarks.tsv'] -d [dimension; o:overworld, n:nether, e:theEnd]" << endl;
 }
 
 int main(int argc, char *argv[]) {
     string input;
     string output;
     string landmarksFile;
+    int dimension = 100;
 
     int opt;
     opterr = 0;
-    while ((opt = getopt(argc, argv, "w:o:l:")) != -1) {
+    while ((opt = getopt(argc, argv, "w:o:l:d:")) != -1) {
         switch (opt) {
             case 'w':
                 input = optarg;
@@ -461,6 +483,20 @@ int main(int argc, char *argv[]) {
             case 'l':
                 landmarksFile = optarg;
                 break;
+            case 'd': {
+                string d(optarg);
+                if (d == "o") {
+                    dimension = 0;
+                } else if (d == "n") {
+                    dimension = -1;
+                } else if (d == "e") {
+                    dimension = 1;
+                } else {
+                    PrintDescription();
+                    return 1;
+                }
+                break;
+            }
             default:
                 PrintDescription();
                 return 1;
@@ -476,11 +512,11 @@ int main(int argc, char *argv[]) {
         ifstream stream(landmarksFile.c_str());
         string line;
         while (getline(stream, line)) {
-            int x, z;
-            if (sscanf(line.c_str(), "%d\t%d", &x, &z) != 2) {
+            int dim, x, z;
+            if (sscanf(line.c_str(), "%d\t%d\t%d", &dim, &x, &z) != 3) {
                 continue;
             }
-            kLandmarks.push_back(make_pair(x, z));
+            kLandmarks.push_back({.dimension = dim, .x = x, .z = z});
         }
     }
     
@@ -513,7 +549,7 @@ int main(int argc, char *argv[]) {
             ostringstream name;
             name << "r." << regionX << "." << regionZ << ".png";
             fs::path png = fs::path(output).append(name.str());
-            RegionToPng2(input, regionX, regionZ, png.string());
+            RegionToPng2(input, dimension, regionX, regionZ, png.string());
         }, regionX, regionZ));
     }
     
