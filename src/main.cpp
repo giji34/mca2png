@@ -10,7 +10,7 @@
 
 using namespace std;
 using namespace mcfile;
-namespace fs = std::filesystem;
+namespace fs = mcfile::detail::filesystem;
 
 static std::set<mcfile::blocks::BlockId> const plantBlocks = {
     mcfile::blocks::minecraft::beetroots,
@@ -530,7 +530,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     
-    namespace fs = std::filesystem;
     auto chunkDir = fs::path(input).append("chunk");
     set<pair<int, int>> existingRegions;
     for (auto const& path : fs::directory_iterator(chunkDir)) {
