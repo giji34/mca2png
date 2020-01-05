@@ -17,7 +17,7 @@ list(APPEND mca2png_link_libraries "z")
 
 set(CMAKE_REQUIRED_FLAGS "-lstdc++fs")
 check_c_compiler_flag("" TEST_RESULT_STDCXXFS)
-if (TEST_RESULT_STDCXXFS)
+if (TEST_RESULT_STDCXXFS AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   list(APPEND mca2png_link_libraries stdc++fs)
 endif()
 
