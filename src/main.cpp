@@ -184,6 +184,21 @@ static int SkyLevel(int dimension, Chunk const& chunk, int x, int z) {
     return 0;
 }
 
+static bool IsWaterLike(Block const& block) {
+    string const& name = block.fName;
+    if (name == "minecraft:water" || name == "minecraft:bubble_column" || name == "minecraft:kelp" || name == "minecraft:seagrass" || name == "minecraft:tall_seagrass") {
+        return true;
+    }
+    auto found = block.fProperties.find("waterlogged");
+    if (found == block.fProperties.end()) {
+        return false;
+    }
+    if (found->second == "true") {
+        return true;
+    }
+    return false;
+}
+
 static void RegionToPng2(string world, int dimension, int regionX, int regionZ, string png) {
     int const width = 513;
     int const height = 513;
@@ -244,12 +259,12 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
                     Color translucentBlock(0, 0, 0, 0);
                     int const yini = SkyLevel(dimension, *chunk, x, z);
                     for (int y = yini; y >= 0; y--) {
-                        auto block = chunk->blockIdAt(x, y, z);
+                        auto const& block = chunk->blockAt(x, y, z);
                         if (!block) {
                             airDepth++;
                             continue;
                         }
-                        if (block == blocks::minecraft::water || block == blocks::minecraft::bubble_column || block == blocks::minecraft::kelp) {
+                        if (IsWaterLike(*block)) {
                             if (waterDepth == 0) {
                                 int const idx = (z - minZ) * width + (x - minX);
                                 lightPtr[idx] = LightAt(*chunk, x, y + 1, z);
@@ -257,16 +272,17 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
                             waterDepth++;
                             continue;
                         }
-                        if (transparentBlocks.find(block) != transparentBlocks.end()) {
+                        blocks::BlockId blockId = blocks::FromName(block->fName);
+                        if (transparentBlocks.find(blockId) != transparentBlocks.end()) {
                             airDepth++;
                             continue;
                         }
-                        if (plantBlocks.find(block) != plantBlocks.end()) {
+                        if (plantBlocks.find(blockId) != plantBlocks.end()) {
                             airDepth++;
                             continue;
                         }
                         Color c(0, 0, 0);
-                        if (!BlockColor(block, c)) {
+                        if (!BlockColor(blockId, c)) {
                             cerr << "Unknown block: " << block << endl;
                         } else {
                             int const idx = (z - minZ) * width + (x - minX);
@@ -276,7 +292,7 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
                             if (waterDepth > 0) {
                                 color = waterColor.diffuse(waterDiffusion, waterDepth);
                                 translucentBlock = Color(0, 0, 0, 0);
-                            } else if (block == blocks::minecraft::grass_block) {
+                            } else if (blockId == blocks::minecraft::grass_block) {
                                 float const v = std::min(std::max((y - 63.0) / 193.0, 0.0), 1.0);
                                 auto c = altitude.getColor(v);
                                 color = Color::FromFloat(c.r, c.g, c.b, 1);
