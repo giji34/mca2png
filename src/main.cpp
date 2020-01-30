@@ -482,7 +482,7 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
 }
 
 static void PrintDescription() {
-    cerr << "mca2png -w [world directory] -o [output directory] -l [path to 'landmarks.tsv'] -d [dimension; o:overworld, n:nether, e:theEnd]" << endl;
+    cerr << "mca2png -w [world directory] -x [region x] -z [region z] -o [output directory] -l [path to 'landmarks.tsv'] -d [dimension; o:overworld, n:nether, e:theEnd]" << endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -490,10 +490,12 @@ int main(int argc, char *argv[]) {
     string output;
     string landmarksFile;
     int dimension = 100;
+    int x = INT_MAX;
+    int z = INT_MAX;
 
     int opt;
     opterr = 0;
-    while ((opt = getopt(argc, argv, "w:o:l:d:")) != -1) {
+    while ((opt = getopt(argc, argv, "w:x:z:o:l:d:")) != -1) {
         switch (opt) {
             case 'w':
                 input = optarg;
@@ -518,13 +520,25 @@ int main(int argc, char *argv[]) {
                 }
                 break;
             }
+            case 'x':
+                if (sscanf(optarg, "%d", &x) != 1) {
+                    PrintDescription();
+                    return 1;
+                }
+                break;
+            case 'z':
+                if (sscanf(optarg, "%d", &z) != 1) {
+                    PrintDescription();
+                    return 1;
+                }
+                break;
             default:
                 PrintDescription();
                 return 1;
         }
     }
 
-    if (input.empty() || output.empty() || landmarksFile.empty()) {
+    if (input.empty() || output.empty() || landmarksFile.empty() || x == INT_MAX || z == INT_MAX) {
         PrintDescription();
         return 1;
     }
@@ -540,41 +554,11 @@ int main(int argc, char *argv[]) {
             kLandmarks.push_back({.dimension = dim, .x = x, .z = z});
         }
     }
-    
-    if (kLandmarks.empty()) {
-        cerr << "landmarks.tsv is empty" << endl;
-        return 1;
-    }
-    
-    auto chunkDir = fs::path(input).append("chunk");
-    set<pair<int, int>> existingRegions;
-    for (auto const& path : fs::directory_iterator(chunkDir)) {
-        fs::path p = path.path();
-        int x, z;
-        if (sscanf(p.filename().c_str(), "c.%d.%d.nbt.x", &x, &z) != 2) {
-            continue;
-        }
-        int regionX = Coordinate::RegionFromChunk(x);
-        int regionZ = Coordinate::RegionFromChunk(z);
-        existingRegions.insert(make_pair(regionX, regionZ));
-    }
 
-    hwm::task_queue q(thread::hardware_concurrency());
-    vector<future<void>> futures;
+    ostringstream name;
+    name << "r." << x << "." << z << ".png";
+    fs::path png = fs::path(output).append(name.str());
+    RegionToPng2(input, dimension, x, z, png.string());
 
-    for (auto it : existingRegions) {
-        int regionX = it.first;
-        int regionZ = it.second;
-        futures.emplace_back(q.enqueue([=](int regionX, int regionZ) {
-            ostringstream name;
-            name << "r." << regionX << "." << regionZ << ".png";
-            fs::path png = fs::path(output).append(name.str());
-            RegionToPng2(input, dimension, regionX, regionZ, png.string());
-        }, regionX, regionZ));
-    }
-    
-    for (auto& f : futures) {
-        f.get();
-    }
     return 0;
 }
