@@ -5,7 +5,6 @@ include(CheckCCompilerFlag)
 
 include_directories(ext/libminecraft-file/include
                     ext/svpng
-                    ext/hwm.task
                     ext/colormap-shaders/include)
 add_definitions(-std=c++17)
 add_executable(mca2png src/main.cpp
@@ -28,4 +27,3 @@ if (TEST_RESULT_PTHREAD)
 endif()
 
 target_link_libraries(mca2png ${mca2png_link_libraries})
-

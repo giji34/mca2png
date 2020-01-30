@@ -4,7 +4,6 @@
 #include <set>
 #include <fstream>
 #include "svpng.inc"
-#include "hwm/task/task_queue.hpp"
 #include "colormap/colormap.h"
 #include "block_color.h"
 
