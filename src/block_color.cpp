@@ -583,6 +583,10 @@ static std::map<mcfile::blocks::BlockId, Color> const blockToColor {
     {mcfile::blocks::minecraft::flower_pot, kColorPotter},
     {mcfile::blocks::minecraft::frosted_ice, Color(109, 146, 193)},
     {mcfile::blocks::minecraft::nether_portal, Color(78, 30, 135)},
+    {mcfile::blocks::minecraft::bee_nest, Color(158, 105, 51)},
+    {mcfile::blocks::minecraft::beehive, Color(182, 146, 94)},
+    {mcfile::blocks::minecraft::honey_block, Color(232, 180, 70)},
+    {mcfile::blocks::minecraft::honeycomb_block, Color(229, 138, 8)},
 
     // plants
     {mcfile::blocks::minecraft::lily_pad, Color(0, 123, 0)},
