@@ -3,7 +3,7 @@
 #include <math.h>
 #include <set>
 #include <fstream>
-#include "svpng.inc"
+#include "yspngenc.h"
 #include "colormap/colormap.h"
 #include "block_color.h"
 
@@ -471,13 +471,11 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
     if (blackout) {
         return;
     }
-    
-    FILE *out = fopen(png.c_str(), "wb");
-    if (!out) {
-        return;
-    }
-    svpng(out, 512, 512, (unsigned char *)img.data(), 1);
-    fclose(out);
+
+    YsRawPngEncoder encoder;
+    int const bitDepth = 8;
+    int const colorType = 6; // Truecolor with alpha
+    encoder.EncodeToFile(png.c_str(), 512, 512, bitDepth, colorType, (unsigned char const*)img.data());
 }
 
 static void PrintDescription() {
