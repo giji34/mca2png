@@ -4,3 +4,6 @@
 [submodule "ext/colormap-shaders"]
 	path = ext/colormap-shaders
 	url = https://github.com/kbinani/colormap-shaders.git
+[submodule "ext/zopfli"]
+	path = ext/zopfli
+	url = https://github.com/google/zopfli.git
