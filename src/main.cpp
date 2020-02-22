@@ -4,6 +4,7 @@
 #include <set>
 #include <fstream>
 #include "yspngenc.h"
+#include "zopflipng_lib.h"
 #include "colormap/colormap.h"
 #include "block_color.h"
 
@@ -197,6 +198,18 @@ static bool IsWaterLike(Block const& block) {
     }
     return false;
 }
+
+class PngEncoder : public YsGenericPngEncoder {
+public:
+    vector<unsigned char> mutable buffer;
+    
+protected:
+    int StreamOut(int nByte,const unsigned char byteData[]) const override
+    {
+        copy_n(byteData, nByte, back_inserter(buffer));
+        return YSOK;
+    }
+};
 
 static void RegionToPng2(string world, int dimension, int regionX, int regionZ, string png) {
     int const width = 513;
@@ -472,10 +485,24 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
         return;
     }
 
-    YsRawPngEncoder encoder;
+    PngEncoder encoder;
     int const bitDepth = 8;
     int const colorType = 6; // Truecolor with alpha
-    encoder.EncodeToFile(png.c_str(), 512, 512, bitDepth, colorType, (unsigned char const*)img.data());
+    encoder.Encode(512, 512, bitDepth, colorType, (unsigned char const*)img.data());
+
+    vector<unsigned char> result;
+    ZopfliPNGOptions opt;
+    opt.verbose = true;
+    if (ZopfliPNGOptimize(encoder.buffer, opt, false, &result) != 0) {
+        return;
+    }
+    
+    FILE* out = fopen(png.c_str(), "wb");
+    if (!out) {
+        return;
+    }
+    fwrite(result.data(), 1, result.size(), out);
+    fclose(out);
 }
 
 static void PrintDescription() {
