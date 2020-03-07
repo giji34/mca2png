@@ -3,8 +3,8 @@
 #include <math.h>
 #include <set>
 #include <fstream>
-#include "yspngenc.h"
 #include "zopflipng_lib.h"
+#include "lodepng.h"
 #include "colormap/colormap.h"
 #include "block_color.h"
 
@@ -198,18 +198,6 @@ static bool IsWaterLike(Block const& block) {
     }
     return false;
 }
-
-class PngEncoder : public YsGenericPngEncoder {
-public:
-    vector<unsigned char> mutable buffer;
-    
-protected:
-    int StreamOut(int nByte,const unsigned char byteData[]) const override
-    {
-        copy_n(byteData, nByte, back_inserter(buffer));
-        return YSOK;
-    }
-};
 
 static void RegionToPng2(string world, int dimension, int regionX, int regionZ, string png) {
     int const width = 513;
@@ -485,24 +473,34 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
         return;
     }
 
-    PngEncoder encoder;
-    int const bitDepth = 8;
-    int const colorType = 6; // Truecolor with alpha
-    encoder.Encode(512, 512, bitDepth, colorType, (unsigned char const*)img.data());
+    unsigned char *out = NULL;
+    size_t outsize = 0;
+    if (lodepng_encode32(&out, &outsize, (unsigned char const*)img.data(), 512, 512) != 0) {
+        return;
+    }
+    if (out == NULL) {
+        return;
+    }
+
+    vector<unsigned char> pngBuffer;
+    pngBuffer.reserve(outsize);
+    copy_n(out, outsize, back_inserter(pngBuffer));
+    free(out);
+    out = NULL;
 
     vector<unsigned char> result;
     ZopfliPNGOptions opt;
-    opt.verbose = true;
-    if (ZopfliPNGOptimize(encoder.buffer, opt, false, &result) != 0) {
+    opt.verbose = false;
+    if (ZopfliPNGOptimize(pngBuffer, opt, false, &result) != 0) {
         return;
     }
     
-    FILE* out = fopen(png.c_str(), "wb");
-    if (!out) {
+    FILE* file = fopen(png.c_str(), "wb");
+    if (!file) {
         return;
     }
-    fwrite(result.data(), 1, result.size(), out);
-    fclose(out);
+    fwrite(result.data(), 1, result.size(), file);
+    fclose(file);
 }
 
 static void PrintDescription() {

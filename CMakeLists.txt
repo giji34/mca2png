@@ -4,7 +4,7 @@ project(mca2png)
 include(CheckCCompilerFlag)
 
 include_directories(ext/libminecraft-file/include
-                    ext/yspng-20140625/src
+                    ext/zopfli/src/zopflipng/lodepng
                     ext/colormap-shaders/include
                     ext/zopfli/src/zopflipng)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
@@ -12,10 +12,6 @@ add_executable(mca2png src/main.cpp
                        src/block_color.cpp
                        src/block_color.h
                        src/color.h
-                       ext/yspng-20140625/src/yspng.cpp
-                       ext/yspng-20140625/src/yspng.h
-                       ext/yspng-20140625/src/yspngenc.cpp
-                       ext/yspng-20140625/src/yspngenc.h
                        ext/libminecraft-file/include/minecraft-file.hpp
                        ext/zopfli/src/zopflipng/lodepng/lodepng.cpp
                        ext/zopfli/src/zopflipng/lodepng/lodepng_util.cpp
