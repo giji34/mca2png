@@ -573,6 +573,9 @@ int main(int argc, char *argv[]) {
             }
             kLandmarks.push_back({.dimension = dim, .x = x, .z = z});
         }
+        if (kLandmarks.empty()) {
+            return 1;
+        }
     }
 
     ostringstream name;
