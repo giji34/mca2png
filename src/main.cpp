@@ -560,7 +560,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (input.empty() || output.empty() || landmarksFile.empty() || x == INT_MAX || z == INT_MAX) {
+    if (input.empty() || output.empty() || landmarksFile.empty() || x == INT_MAX || z == INT_MAX || dimension == 100) {
         PrintDescription();
         return 1;
     }
