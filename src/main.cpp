@@ -210,8 +210,6 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
         
         int const minBlockZ = regionZ * 512 - kVisibleRadius * 2;
         int const maxBlockZ = regionZ * 512 + 511 + kVisibleRadius * 2;
-        for (int i = 0; i < kLandmarks.size(); i++) {
-        }
         for (auto it = kLandmarks.begin(); it != kLandmarks.end(); it++) {
             if (dimension == it->dimension && minBlockX <= it->x && it->x <= maxBlockX && minBlockZ <= it->z && it->z <= maxBlockZ) {
                 nearbyLandmarks.push_back(*it);
