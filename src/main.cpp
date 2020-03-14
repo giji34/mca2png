@@ -40,66 +40,34 @@ static std::set<mcfile::blocks::BlockId> const transparentBlocks = {
     mcfile::blocks::minecraft::barrier,
     mcfile::blocks::minecraft::black_banner,
     mcfile::blocks::minecraft::black_wall_banner,
-    mcfile::blocks::minecraft::black_stained_glass,
-    mcfile::blocks::minecraft::black_stained_glass_pane,
     mcfile::blocks::minecraft::blue_banner,
-    mcfile::blocks::minecraft::blue_stained_glass,
-    mcfile::blocks::minecraft::blue_stained_glass_pane,
     mcfile::blocks::minecraft::blue_wall_banner,
     mcfile::blocks::minecraft::brown_banner,
-    mcfile::blocks::minecraft::brown_stained_glass,
-    mcfile::blocks::minecraft::brown_stained_glass_pane,
     mcfile::blocks::minecraft::gray_wall_banner,
     mcfile::blocks::minecraft::cyan_banner,
     mcfile::blocks::minecraft::cyan_wall_banner,
-    mcfile::blocks::minecraft::cyan_stained_glass,
-    mcfile::blocks::minecraft::cyan_stained_glass_pane,
     mcfile::blocks::minecraft::gray_banner,
-    mcfile::blocks::minecraft::gray_stained_glass,
-    mcfile::blocks::minecraft::gray_stained_glass_pane,
     mcfile::blocks::minecraft::green_banner,
-    mcfile::blocks::minecraft::green_stained_glass,
-    mcfile::blocks::minecraft::green_stained_glass_pane,
     mcfile::blocks::minecraft::green_wall_banner,
     mcfile::blocks::minecraft::light_blue_banner,
-    mcfile::blocks::minecraft::light_blue_stained_glass,
-    mcfile::blocks::minecraft::light_blue_stained_glass_pane,
     mcfile::blocks::minecraft::light_blue_wall_banner,
     mcfile::blocks::minecraft::light_gray_banner,
-    mcfile::blocks::minecraft::light_gray_stained_glass,
-    mcfile::blocks::minecraft::light_gray_stained_glass_pane,
     mcfile::blocks::minecraft::light_gray_wall_banner,
     mcfile::blocks::minecraft::lime_banner,
-    mcfile::blocks::minecraft::lime_stained_glass,
-    mcfile::blocks::minecraft::lime_stained_glass_pane,
     mcfile::blocks::minecraft::lime_wall_banner,
     mcfile::blocks::minecraft::magenta_banner,
-    mcfile::blocks::minecraft::magenta_stained_glass,
-    mcfile::blocks::minecraft::magenta_stained_glass_pane,
     mcfile::blocks::minecraft::magenta_wall_banner,
     mcfile::blocks::minecraft::orange_banner,
-    mcfile::blocks::minecraft::orange_stained_glass,
-    mcfile::blocks::minecraft::orange_stained_glass_pane,
     mcfile::blocks::minecraft::orange_wall_banner,
     mcfile::blocks::minecraft::pink_banner,
-    mcfile::blocks::minecraft::pink_stained_glass,
-    mcfile::blocks::minecraft::pink_stained_glass_pane,
     mcfile::blocks::minecraft::pink_wall_banner,
     mcfile::blocks::minecraft::purple_banner,
-    mcfile::blocks::minecraft::purple_stained_glass,
-    mcfile::blocks::minecraft::purple_stained_glass_pane,
     mcfile::blocks::minecraft::purple_wall_banner,
     mcfile::blocks::minecraft::red_banner,
-    mcfile::blocks::minecraft::red_stained_glass,
-    mcfile::blocks::minecraft::red_stained_glass_pane,
     mcfile::blocks::minecraft::red_wall_banner,
     mcfile::blocks::minecraft::white_banner,
-    mcfile::blocks::minecraft::white_stained_glass,
-    mcfile::blocks::minecraft::white_stained_glass_pane,
     mcfile::blocks::minecraft::white_wall_banner,
     mcfile::blocks::minecraft::yellow_banner,
-    mcfile::blocks::minecraft::yellow_stained_glass,
-    mcfile::blocks::minecraft::yellow_stained_glass_pane,
     mcfile::blocks::minecraft::yellow_wall_banner,
     mcfile::blocks::minecraft::void_air,
     mcfile::blocks::minecraft::structure_void,
@@ -199,12 +167,149 @@ static bool IsWaterLike(Block const& block) {
     return false;
 }
 
+class TranslucentBlock {
+private:
+    TranslucentBlock() = delete;
+    
+public:
+    static Color Air() {
+        return Color(0, 0, 0, 0);
+    }
+    
+    static Color Opaque() {
+        return Color(0, 0, 0, 255);
+    }
+    
+    static Color FromBlock(Block const& block) {
+        if (IsWaterLike(block)) {
+            return Color::FromFloat(69 / 255.0f, 91 / 255.0f, 211 / 255.0f, 0);
+        }
+        blocks::BlockId blockId = blocks::FromName(block.fName);
+        int const stainedGlassAlpha = (int)(255 * 0.5);
+        switch (blockId) {
+            case blocks::minecraft::air:
+            case blocks::minecraft::cave_air:
+                return Air();
+            case blocks::minecraft::glass:
+            case blocks::minecraft::glass_pane:
+                return Color(255, 255, 255, 4);
+            case blocks::minecraft::white_stained_glass:
+            case blocks::minecraft::white_stained_glass_pane:
+                return Color(255, 255, 255, stainedGlassAlpha);
+            case blocks::minecraft::orange_stained_glass:
+            case blocks::minecraft::orange_stained_glass_pane:
+                return Color(255, 165, 0, stainedGlassAlpha);
+            case blocks::minecraft::magenta_stained_glass:
+            case blocks::minecraft::magenta_stained_glass_pane:
+                return Color(255, 0, 255, stainedGlassAlpha);
+            case blocks::minecraft::light_blue_stained_glass:
+            case blocks::minecraft::light_blue_stained_glass_pane:
+                return Color(142, 209, 224, stainedGlassAlpha);
+            case blocks::minecraft::yellow_stained_glass:
+            case blocks::minecraft::yellow_stained_glass_pane:
+                return Color(227, 199, 0, stainedGlassAlpha);
+            case blocks::minecraft::lime_stained_glass:
+            case blocks::minecraft::lime_stained_glass_pane:
+                return Color(0, 255, 0, stainedGlassAlpha);
+            case blocks::minecraft::pink_stained_glass:
+            case blocks::minecraft::pink_stained_glass_pane:
+                return Color(255, 102, 153, stainedGlassAlpha);
+            case blocks::minecraft::gray_stained_glass:
+            case blocks::minecraft::gray_stained_glass_pane:
+                return Color(118, 118, 118, stainedGlassAlpha);
+            case blocks::minecraft::light_gray_stained_glass:
+            case blocks::minecraft::light_gray_stained_glass_pane:
+                return Color(211, 211, 211, stainedGlassAlpha);
+            case blocks::minecraft::cyan_stained_glass:
+            case blocks::minecraft::cyan_stained_glass_pane:
+                return Color(0, 255, 255, stainedGlassAlpha);
+            case blocks::minecraft::purple_stained_glass:
+            case blocks::minecraft::purple_stained_glass_pane:
+                return Color(128, 0, 128, stainedGlassAlpha);
+            case blocks::minecraft::blue_stained_glass:
+            case blocks::minecraft::blue_stained_glass_pane:
+                return Color(0, 0, 255, stainedGlassAlpha);
+            case blocks::minecraft::brown_stained_glass:
+            case blocks::minecraft::brown_stained_glass_pane:
+                return Color(139, 69, 19, stainedGlassAlpha);
+            case blocks::minecraft::green_stained_glass:
+            case blocks::minecraft::green_stained_glass_pane:
+                return Color(0, 128, 0, stainedGlassAlpha);
+            case blocks::minecraft::red_stained_glass:
+            case blocks::minecraft::red_stained_glass_pane:
+                return Color(255, 0, 0, stainedGlassAlpha);
+            case blocks::minecraft::black_stained_glass:
+            case blocks::minecraft::black_stained_glass_pane:
+                return Color(0, 0, 0, stainedGlassAlpha);
+            default:
+                break;
+        }
+        if (transparentBlocks.find(blockId) != transparentBlocks.end()) {
+            return Air();
+        }
+        if (plantBlocks.find(blockId) != plantBlocks.end()) {
+            return Air();
+        }
+        return Opaque();
+    }
+
+    Color color;
+};
+
+template<class T>
+static T Clamp(T v, T min, T max) {
+    return std::min(std::max(v, min), max);
+}
+
+static int Altitude(int dimension, Chunk const& chunk, int x, int z) {
+    int const yini = SkyLevel(dimension, chunk, x, z);
+    int waterDepth = 0;
+    for (int y = yini; y >= 0; y--) {
+        auto const& block = chunk.blockAt(x, y, z);
+        if (!block) {
+            continue;
+        }
+        if (IsWaterLike(*block)) {
+            waterDepth++;
+            continue;
+        }
+        auto bid = blocks::FromName(block->fName);
+        if (transparentBlocks.find(bid) != transparentBlocks.end()) {
+            continue;
+        }
+        if (plantBlocks.find(bid) != plantBlocks.end()) {
+            continue;
+        }
+        if (waterDepth == 0) {
+            return y;
+        }
+    }
+    return 0;
+}
+
+static Color DiffuseBlockColor(Color blockColor, int waterDepth, vector<Color> const& pillar, int pillarHeight) {
+    Color base = blockColor;
+    if (waterDepth > 0) {
+        static float const diffusion = 0.02;
+        Color water = Color(69, 91, 211).diffuse(diffusion, waterDepth);
+        base = Color::Add(water, Color(0, 0, 0).withAlphaComponent(0.2));
+    }
+    Color result = base;
+    for (int i = pillarHeight - 1; i >= 0; i--) {
+        Color c = pillar[i];
+        if (c.fA > 0) {
+            result = Color::Blend(c, result);
+        }
+    }
+    return result;
+}
+
 static void RegionToPng2(string world, int dimension, int regionX, int regionZ, string png) {
     int const width = 513;
     int const height = 513;
     
     vector<Landmark> nearbyLandmarks;
-    {
+    if (!kLandmarks.empty()){
         int const minBlockX = regionX * 512 - kVisibleRadius * 2;
         int const maxBlockX = regionX * 512 + 511 + kVisibleRadius * 2;
         
@@ -220,12 +325,10 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
         }
     }
     
-    vector<uint8_t> heightMap(width * height, 0);
+    vector<uint8_t> altitude(width * height, 0);
     vector<Color> pixels(width * height, Color::FromFloat(0, 0, 0, 1));
     vector<float> light(width * height, 0);
-    uint8_t *heightMapPtr = heightMap.data();
-    Color *pixelsPtr = pixels.data();
-    float *lightPtr = light.data();
+    vector<Color> translucentBlockPillar(255, Color(0, 0, 0, 255));
 
     int const minX = regionX * 512 - 1;
     int const minZ = regionZ * 512 - 1;
@@ -243,68 +346,52 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
                 continue;
             }
 
-            Color const waterColor(69, 91, 211);
-            float const waterDiffusion = 0.02;
-            colormap::kbinani::Altitude altitude;
+            colormap::kbinani::Altitude colormap;
             int const sZ = chunk->minBlockZ();
             int const eZ = chunk->maxBlockZ();
             int const sX = chunk->minBlockX();
             int const eX = chunk->maxBlockX();
             for (int z = sZ; z <= eZ; z++) {
                 for (int x = sX; x <= eX; x++) {
-                    int waterDepth = 0;
-                    int airDepth = 0;
-                    Color translucentBlock(0, 0, 0, 0);
+                    fill_n(translucentBlockPillar.begin(), 256, TranslucentBlock::Air());
                     int const yini = SkyLevel(dimension, *chunk, x, z);
-                    for (int y = yini; y >= 0; y--) {
+                    int pillarIndex = 0;
+                    int pillarHeight = 0;
+                    blocks::BlockId opaqueBlock = blocks::minecraft::bedrock;
+                    
+                    int elevation = 0;
+                    int waterDepth = 0;
+                    for (int y = yini; y >= 0; y--, pillarIndex++) {
                         auto const& block = chunk->blockAt(x, y, z);
-                        if (!block) {
-                            airDepth++;
-                            continue;
-                        }
-                        if (IsWaterLike(*block)) {
-                            if (waterDepth == 0) {
-                                int const idx = (z - minZ) * width + (x - minX);
-                                lightPtr[idx] = LightAt(*chunk, x, y + 1, z);
+                        if (block) {
+                            if (IsWaterLike(*block)) {
+                                waterDepth++;
                             }
-                            waterDepth++;
-                            continue;
-                        }
-                        blocks::BlockId blockId = blocks::FromName(block->fName);
-                        if (transparentBlocks.find(blockId) != transparentBlocks.end()) {
-                            airDepth++;
-                            continue;
-                        }
-                        if (plantBlocks.find(blockId) != plantBlocks.end()) {
-                            airDepth++;
-                            continue;
-                        }
-                        Color c(0, 0, 0);
-                        if (!BlockColor(blockId, c)) {
-                            cerr << "Unknown block: " << block << endl;
+                            auto tb = TranslucentBlock::FromBlock(*block);
+                            if (tb.fA >= 1) {
+                                pillarHeight = pillarIndex;
+                                elevation = y;
+                                opaqueBlock = blocks::FromName(block->fName);
+                                break;
+                            }
+                            translucentBlockPillar[pillarIndex] = tb;
                         } else {
-                            int const idx = (z - minZ) * width + (x - minX);
-
-                            Color const opaqeBlockColor = c;
-                            Color color(0, 0, 0, 0);
-                            if (waterDepth > 0) {
-                                color = waterColor.diffuse(waterDiffusion, waterDepth);
-                                translucentBlock = Color(0, 0, 0, 0);
-                            } else if (blockId == blocks::minecraft::grass_block) {
-                                float const v = std::min(std::max((y - 63.0) / 193.0, 0.0), 1.0);
-                                auto c = altitude.getColor(v);
-                                color = Color::FromFloat(c.r, c.g, c.b, 1);
-                                heightMapPtr[idx] = y;
-                                lightPtr[idx] = LightAt(*chunk, x, y + 1, z);
-                            } else {
-                                color = opaqeBlockColor;
-                                heightMapPtr[idx] = y;
-                                lightPtr[idx] = LightAt(*chunk, x, y + 1, z);
-                            }
-                            pixelsPtr[idx] = Color::Add(color, translucentBlock.withAlphaComponent(0.2));
-                            break;
+                            translucentBlockPillar[pillarIndex] = TranslucentBlock::Air();
                         }
                     }
+                    Color opaqueBlockColor(0, 0, 0);
+                    if (opaqueBlock == blocks::minecraft::grass_block) {
+                        float const v = Clamp((elevation - 63.0) / 193.0, 0.0, 1.0);
+                        auto mapped = colormap.getColor(v);
+                        opaqueBlockColor = Color::FromFloat(mapped.r, mapped.g, mapped.b, 1);
+                    } else {
+                        BlockColor(opaqueBlock, opaqueBlockColor);
+                    }
+                    Color c = DiffuseBlockColor(opaqueBlockColor, waterDepth, translucentBlockPillar, pillarHeight);
+                    int const idx = (z - minZ) * width + (x - minX);
+                    pixels[idx] = c;
+                    light[idx] = LightAt(*chunk, x, elevation + 1, z);
+                    altitude[idx] = elevation;
                 }
             }
         }
@@ -314,13 +401,13 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
         int z1 = 1;
         int i1 = z1 * width + x;
         int i0 = x;
-        heightMap[i0] = heightMap[i1];
+        altitude[i0] = altitude[i1];
     }
     for (int z = 1; z < height; z++) {
         int x1 = 1;
         int i1 = z * width + x1;
         int i0 = (z - 1) * width + x1;
-        heightMap[i0] = heightMap[i1];
+        altitude[i0] = altitude[i1];
     }
 
     // 北側
@@ -335,34 +422,8 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
         int const z = chunk->maxBlockZ();
         for (int lbx = 0; lbx < 16; lbx++) {
             int const x = chunk->minBlockX() + lbx;
-            int waterDepth = 0;
-            int const yini = SkyLevel(dimension, *chunk, x, z);
-            for (int y = yini; y >= 0; y--) {
-                auto block = chunk->blockIdAt(x, y, z);
-                if (!block) {
-                    continue;
-                }
-                if (block == blocks::minecraft::water || block == blocks::minecraft::bubble_column) {
-                    waterDepth++;
-                    continue;
-                }
-                if (transparentBlocks.find(block) != transparentBlocks.end()) {
-                    continue;
-                }
-                if (plantBlocks.find(block) != plantBlocks.end()) {
-                    continue;
-                }
-                Color c(0, 0, 0);
-                if (!BlockColor(block, c)) {
-                    cerr << "Unknown block: " << block << endl;
-                } else {
-                    int const idx = (z - minZ) * width + (x - minX);
-                    if (waterDepth == 0) {
-                        heightMapPtr[idx] = y;
-                    }
-                    break;
-                }
-            }
+            int const idx = (z - minZ) * width + (x - minX);
+            altitude[idx] = Altitude(dimension, *chunk, x, z);
         }
     }
     
@@ -378,34 +439,8 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
         int const x = chunk->maxBlockX();
         for (int lbz = 0; lbz < 16; lbz++) {
             int const z = chunk->minBlockZ() + lbz;
-            int waterDepth = 0;
-            int const yini = SkyLevel(dimension, *chunk, x, z);
-            for (int y = yini; y >= 0; y--) {
-                auto block = chunk->blockIdAt(x, y, z);
-                if (!block) {
-                    continue;
-                }
-                if (block == blocks::minecraft::water || block == blocks::minecraft::bubble_column) {
-                    waterDepth++;
-                    continue;
-                }
-                if (transparentBlocks.find(block) != transparentBlocks.end()) {
-                    continue;
-                }
-                if (plantBlocks.find(block) != plantBlocks.end()) {
-                    continue;
-                }
-                Color c(0, 0, 0);
-                if (!BlockColor(block, c)) {
-                    cerr << "Unknown block: " << block << endl;
-                } else {
-                    int const idx = (z - minZ) * width + (x - minX);
-                    if (waterDepth == 0) {
-                        heightMapPtr[idx] = y;
-                    }
-                    break;
-                }
-            }
+            int const idx = (z - minZ) * width + (x - minX);
+            altitude[idx] = Altitude(dimension, *chunk, x, z);
         }
     }
     
@@ -417,12 +452,12 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
         for (int x = 1; x < width; x++) {
             int const blockX = regionX * 512 + x - 1;
             int const idx = z * width + x;
-            uint8_t const h = heightMap[idx];
+            uint8_t const h = altitude[idx];
             Color c = pixels[idx];
             Color color = c;
 
-            uint8_t hNorth = heightMap[(z - 1) * width + x];
-            uint8_t hWest = heightMap[z * width + x - 1];
+            uint8_t hNorth = altitude[(z - 1) * width + x];
+            uint8_t hWest = altitude[z * width + x - 1];
             int score = 0; // +: bright, -: dark
             if (hNorth > h) score--;
             if (hNorth < h) score++;
@@ -430,15 +465,15 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
             if (hWest < h) score++;
 
             float minDistance = numeric_limits<float>::max();
-            for (int j = 0; j < nearbyLandmarks.size(); j++) {
-                Landmark const& landmark = nearbyLandmarks[j];
-                if (landmark.dimension != dimension) {
-                    continue;
+            float brightness = 1;
+            if (!kLandmarks.empty()) {
+                for (int j = 0; j < nearbyLandmarks.size(); j++) {
+                    Landmark const& landmark = nearbyLandmarks[j];
+                    float const distance = hypotf(blockX - landmark.x, blockZ - landmark.z);
+                    minDistance = min(minDistance, distance);
                 }
-                float const distance = hypotf(blockX - landmark.x, blockZ - landmark.z);
-                minDistance = min(minDistance, distance);
+                brightness = BrightnessByDistanceFromLandmark(minDistance);
             }
-            float const brightness = BrightnessByDistanceFromLandmark(minDistance);
 
             if (score > 0) {
                 float coeff = 1.2;
@@ -558,7 +593,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (input.empty() || output.empty() || landmarksFile.empty() || x == INT_MAX || z == INT_MAX || dimension == 100) {
+    if (input.empty() || output.empty() || x == INT_MAX || z == INT_MAX || dimension == 100) {
         PrintDescription();
         return 1;
     }
@@ -572,9 +607,6 @@ int main(int argc, char *argv[]) {
                 continue;
             }
             kLandmarks.push_back({.dimension = dim, .x = x, .z = z});
-        }
-        if (kLandmarks.empty()) {
-            return 1;
         }
     }
 

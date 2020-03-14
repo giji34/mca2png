@@ -50,6 +50,10 @@ public:
         return Color(r, g, b, a, true);
     }
 
+    static Color Blend(Color fg, Color bg) {
+        return Blend_(fg, bg);
+    }
+    
     HSV toHSV() const {
         float r = fR;
         float g = fG;
@@ -143,6 +147,17 @@ private:
         }
     }
 
+    static Color Blend_(Color src, Color dst) {
+        float a = src.fA + dst.fA * (1 - src.fA);
+        if (a <= 0) {
+            return Color::FromFloat(0, 0, 0, 0);
+        }
+        float r = (src.fR * src.fA + dst.fR * dst.fA * (1 - src.fA)) / a;
+        float g = (src.fG * src.fA + dst.fG * dst.fA * (1 - src.fA)) / a;
+        float b = (src.fB * src.fA + dst.fB * dst.fA * (1 - src.fA)) / a;
+        return Color::FromFloat(r, g, b, a);
+    }
+    
     Color(float r, float g, float b, float a, bool)
         : fR(r)
         , fG(g)
