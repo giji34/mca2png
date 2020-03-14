@@ -271,16 +271,9 @@ static int Altitude(int dimension, Chunk const& chunk, int x, int z) {
         }
         if (IsWaterLike(*block)) {
             waterDepth++;
-            continue;
         }
-        auto bid = blocks::FromName(block->fName);
-        if (transparentBlocks.find(bid) != transparentBlocks.end()) {
-            continue;
-        }
-        if (plantBlocks.find(bid) != plantBlocks.end()) {
-            continue;
-        }
-        if (waterDepth == 0) {
+        auto tb = TranslucentBlock::FromBlock(*block);
+        if (tb.fA >= 1) {
             return y;
         }
     }
