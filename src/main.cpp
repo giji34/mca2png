@@ -328,7 +328,7 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
     vector<uint8_t> altitude(width * height, 0);
     vector<Color> pixels(width * height, Color::FromFloat(0, 0, 0, 1));
     vector<float> light(width * height, 0);
-    vector<Color> translucentBlockPillar(255, Color(0, 0, 0, 255));
+    vector<Color> translucentBlockPillar(256, Color(0, 0, 0, 255));
 
     int const minX = regionX * 512 - 1;
     int const minZ = regionZ * 512 - 1;
@@ -353,7 +353,7 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
             int const eX = chunk->maxBlockX();
             for (int z = sZ; z <= eZ; z++) {
                 for (int x = sX; x <= eX; x++) {
-                    fill_n(translucentBlockPillar.begin(), 256, TranslucentBlock::Air());
+                    fill_n(translucentBlockPillar.begin(), translucentBlockPillar.size(), TranslucentBlock::Air());
                     int const yini = SkyLevel(dimension, *chunk, x, z);
                     int pillarIndex = 0;
                     int pillarHeight = 0;
