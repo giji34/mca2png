@@ -350,7 +350,7 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
                     int const yini = SkyLevel(dimension, *chunk, x, z);
                     int pillarIndex = 0;
                     int pillarHeight = 0;
-                    blocks::BlockId opaqueBlock = blocks::minecraft::bedrock;
+                    blocks::BlockId opaqueBlock = blocks::unknown;
                     
                     int elevation = 0;
                     int waterDepth = 0;
@@ -377,7 +377,7 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
                         float const v = Clamp((elevation - 63.0) / 193.0, 0.0, 1.0);
                         auto mapped = colormap.getColor(v);
                         opaqueBlockColor = Color::FromFloat(mapped.r, mapped.g, mapped.b, 1);
-                    } else {
+                    } else if (opaqueBlock != blocks::unknown){
                         BlockColor(opaqueBlock, opaqueBlockColor);
                     }
                     Color c = DiffuseBlockColor(opaqueBlockColor, waterDepth, translucentBlockPillar, pillarHeight);
