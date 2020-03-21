@@ -83,20 +83,6 @@ struct Landmark {
 static int const kVisibleRadius = 128;
 static vector<Landmark> kLandmarks;
 
-static float LightAt(Chunk const& chunk, int x, int y, int z) {
-    int const envLight = 8;
-    int const defaultLight = 15;
-    if (defaultLight >= 15) {
-        return 1;
-    }
-    
-    int const blockLight = std::max(0, chunk.blockLightAt(x, y, z));
-    int const skyLight = std::max(0, chunk.skyLightAt(x, y, z));
-    float const l = std::min(std::max(blockLight + envLight * (skyLight / 15.f) + defaultLight, 0.f), 15.f) / 15.f;
-    return l;
-}
-
-
 static shared_ptr<Chunk> LoadChunk(fs::path const& chunkFilePath, int chunkX, int chunkZ) {
     int const fLength = fs::file_size(chunkFilePath);
     vector<uint8_t> buffer(fLength);
@@ -320,7 +306,6 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
     
     vector<uint8_t> altitude(width * height, 0);
     vector<Color> pixels(width * height, Color::FromFloat(0, 0, 0, 1));
-    vector<float> light(width * height, 0);
     vector<Color> translucentBlockPillar(256, Color(0, 0, 0, 255));
 
     int const minX = regionX * 512 - 1;
@@ -383,7 +368,6 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
                     Color c = DiffuseBlockColor(opaqueBlockColor, waterDepth, translucentBlockPillar, pillarHeight);
                     int const idx = (z - minZ) * width + (x - minX);
                     pixels[idx] = c;
-                    light[idx] = LightAt(*chunk, x, elevation + 1, z);
                     altitude[idx] = elevation;
                 }
             }
@@ -486,12 +470,11 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
                 color = Color::FromHSV(hsv);
             }
             
-            float const l = light[idx] * brightness;
-            if (l > 0) {
+            if (brightness > 0) {
                 blackout = false;
             }
             int i = (z - 1) * 512 + (x - 1);
-            img[i] = Color::FromFloat(color.fR, color.fG, color.fB, color.fA * l).color();
+            img[i] = Color::FromFloat(color.fR, color.fG, color.fB, color.fA * brightness).color();
         }
     }
 
