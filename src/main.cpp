@@ -138,6 +138,16 @@ static int SkyLevel(int dimension, Chunk const& chunk, int x, int z) {
     return 0;
 }
 
+static bool IsSlab(Block const& block) {
+    auto const found = block.fName.rfind("_slab");
+    return found == block.fName.size() - 5;
+}
+
+static bool IsStairs(Block const& block) {
+    auto const found = block.fName.rfind("_stairs");
+    return found == block.fName.size() - 7;
+}
+
 static bool IsWaterLike(Block const& block) {
     string const& name = block.fName;
     if (name == "minecraft:water" || name == "minecraft:bubble_column" || name == "minecraft:kelp" || name == "minecraft:seagrass" || name == "minecraft:tall_seagrass") {
@@ -147,10 +157,23 @@ static bool IsWaterLike(Block const& block) {
     if (found == block.fProperties.end()) {
         return false;
     }
-    if (found->second == "true") {
-        return true;
+    if (found->second == "false") {
+        return false;
     }
-    return false;
+    if (IsSlab(block)) {
+        auto type = block.fProperties.find("type");
+        if (type != block.fProperties.end() && type->second == "top") {
+            return false;
+        }
+    } else if (IsStairs(block)) {
+        auto half = block.fProperties.find("half");
+        if (half != block.fProperties.end() && half->second == "top") {
+            return false;
+        }
+    } else if (block.fName == "scaffolding") {
+        return false;
+    }
+    return true;
 }
 
 class TranslucentBlock {
