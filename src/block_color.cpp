@@ -1,5 +1,4 @@
 #include "block_color.h"
-#include <minecraft-file.hpp>
 
 static Color const kColorPotter(135, 75, 58);
 static Color const kColorPlanksBirch(244, 230, 161);
@@ -319,7 +318,6 @@ static std::map<mcfile::blocks::BlockId, Color> const blockToColor {
     {mcfile::blocks::minecraft::green_glazed_terracotta, Color(111, 151, 36)},
     {mcfile::blocks::minecraft::furnace, kColorFurnace},
     {mcfile::blocks::minecraft::composter, Color(139, 91, 49)},
-    {mcfile::blocks::minecraft::campfire, Color(199, 107, 3)},
     {mcfile::blocks::minecraft::cartography_table, Color(86, 53, 24)},
     {mcfile::blocks::minecraft::brewing_stand, Color(47, 47, 47)},
     {mcfile::blocks::minecraft::grindstone, Color(141, 141, 141)},
@@ -632,7 +630,20 @@ static std::map<mcfile::blocks::BlockId, Color> const blockToColor {
     {mcfile::blocks::minecraft::cocoa, Color(109, 112, 52)},
 };
 
-bool BlockColor(uint32_t blockId, Color &result) {
+bool BlockColor(mcfile::Block const& block, Color &result) {
+    auto blockId = mcfile::blocks::FromName(block.fName);
+    if (blockId == mcfile::blocks::unknown) {
+        return false;
+    }
+    if (blockId == mcfile::blocks::minecraft::campfire) {
+        auto lit = block.fProperties.find("lit");
+        if (lit != block.fProperties.end() && lit->second == "true") {
+            result = Color(199, 107, 3);
+        } else {
+            result = kColorPlanksOak;
+        }
+        return true;
+    }
     auto it = blockToColor.find(blockId);
     if (it == blockToColor.end()) {
         return false;

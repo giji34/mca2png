@@ -334,6 +334,9 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
     int const minX = regionX * 512 - 1;
     int const minZ = regionZ * 512 - 1;
     
+    Block const kGrassBlock(blocks::minecraft::grass_block);
+    Block const kUnknownBlock(blocks::unknown);
+    
     for (int localChunkZ = 0; localChunkZ < 32; localChunkZ++) {
         int const chunkZ = regionZ * 32 + localChunkZ;
         for (int localChunkX = 0; localChunkX < 32; localChunkX++) {
@@ -358,7 +361,7 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
                     int const yini = SkyLevel(dimension, *chunk, x, z);
                     int pillarIndex = 0;
                     int pillarHeight = 0;
-                    blocks::BlockId opaqueBlock = blocks::unknown;
+                    shared_ptr<Block const> opaqueBlock = nullptr;
                     
                     int elevation = 0;
                     int waterDepth = 0;
@@ -372,7 +375,7 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
                             if (tb.fA >= 1) {
                                 pillarHeight = pillarIndex;
                                 elevation = y;
-                                opaqueBlock = blocks::FromName(block->fName);
+                                opaqueBlock = block;
                                 break;
                             }
                             translucentBlockPillar[pillarIndex] = tb;
@@ -381,12 +384,14 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
                         }
                     }
                     Color opaqueBlockColor(0, 0, 0);
-                    if (opaqueBlock == blocks::minecraft::grass_block) {
-                        float const v = Clamp((elevation - 63.0) / 193.0, 0.0, 1.0);
-                        auto mapped = colormap.getColor(v);
-                        opaqueBlockColor = Color::FromFloat(mapped.r, mapped.g, mapped.b, 1);
-                    } else if (opaqueBlock != blocks::unknown){
-                        BlockColor(opaqueBlock, opaqueBlockColor);
+                    if (opaqueBlock) {
+                        if (opaqueBlock->fName == kGrassBlock.fName) {
+                            float const v = Clamp((elevation - 63.0) / 193.0, 0.0, 1.0);
+                            auto mapped = colormap.getColor(v);
+                            opaqueBlockColor = Color::FromFloat(mapped.r, mapped.g, mapped.b, 1);
+                        } else {
+                            BlockColor(*opaqueBlock, opaqueBlockColor);
+                        }
                     }
                     Color c = DiffuseBlockColor(opaqueBlockColor, waterDepth, translucentBlockPillar, pillarHeight);
                     int const idx = (z - minZ) * width + (x - minX);

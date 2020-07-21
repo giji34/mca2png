@@ -1,5 +1,6 @@
 #pragma once
 
 #include "color.h"
+#include <minecraft-file.hpp>
 
-extern bool BlockColor(uint32_t blockId, Color &result);
+extern bool BlockColor(mcfile::Block const& block, Color &result);
