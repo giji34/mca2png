@@ -159,6 +159,10 @@ static bool IsWaterLike(Block const& block) {
         return true;
     }
 
+    if (block.property("waterlogged") != "true") {
+        return false;
+    }
+
     if (IsSlab(block) && block.property("type") == "top") {
         return false;
     } else if (IsStairs(block) && block.property("half") == "top") {
@@ -169,10 +173,6 @@ static bool IsWaterLike(Block const& block) {
         return false;
     }
     
-    if (block.property("waterlogged") == "false") {
-        return false;
-    }
-
     return true;
 }
 
