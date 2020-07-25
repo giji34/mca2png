@@ -153,37 +153,23 @@ static bool IsTrapdoor(Block const& block) {
     return found == block.fName.size() - 9;
 }
 
-static string BlockProperty(Block const& block, string const& name) {
-    auto prop = block.fProperties.find(name);
-    if (prop == block.fProperties.end()) {
-        return "";
-    }
-    return prop->second;
-}
-
 static bool IsWaterLike(Block const& block) {
     string const& name = block.fName;
     if (name == "minecraft:water" || name == "minecraft:bubble_column" || name == "minecraft:kelp" || name == "minecraft:seagrass" || name == "minecraft:tall_seagrass") {
         return true;
     }
 
-    if (IsSlab(block)) {
-        if (BlockProperty(block, "type") == "top") {
-            return false;
-        }
-    } else if (IsStairs(block)) {
-        if (BlockProperty(block, "half") == "top") {
-            return false;
-        }
+    if (IsSlab(block) && block.property("type") == "top") {
+        return false;
+    } else if (IsStairs(block) && block.property("half") == "top") {
+        return false;
     } else if (block.fName == "scaffolding") {
         return false;
-    } else if (IsTrapdoor(block)) {
-        if (BlockProperty(block, "open") == "close") {
-            return false;
-        }
+    } else if (IsTrapdoor(block) && block.property("open") == "close") {
+        return false;
     }
     
-    if (BlockProperty(block, "waterlogged") == "false") {
+    if (block.property("waterlogged") == "false") {
         return false;
     }
 
@@ -273,7 +259,7 @@ public:
         if (plantBlocks.find(blockId) != plantBlocks.end()) {
             return Air();
         }
-        if (IsTrapdoor(block) && BlockProperty(block, "open") == "true") {
+        if (IsTrapdoor(block) && block.property("open") == "true") {
             return Air();
         }
         return Opaque();
