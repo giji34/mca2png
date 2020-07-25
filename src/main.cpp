@@ -148,31 +148,45 @@ static bool IsStairs(Block const& block) {
     return found == block.fName.size() - 7;
 }
 
+static bool IsTrapdoor(Block const& block) {
+    auto const found = block.fName.rfind("_trapdoor");
+    return found == block.fName.size() - 9;
+}
+
+static string BlockProperty(Block const& block, string const& name) {
+    auto prop = block.fProperties.find(name);
+    if (prop == block.fProperties.end()) {
+        return "";
+    }
+    return prop->second;
+}
+
 static bool IsWaterLike(Block const& block) {
     string const& name = block.fName;
     if (name == "minecraft:water" || name == "minecraft:bubble_column" || name == "minecraft:kelp" || name == "minecraft:seagrass" || name == "minecraft:tall_seagrass") {
         return true;
     }
-    auto found = block.fProperties.find("waterlogged");
-    if (found == block.fProperties.end()) {
-        return false;
-    }
-    if (found->second == "false") {
-        return false;
-    }
+
     if (IsSlab(block)) {
-        auto type = block.fProperties.find("type");
-        if (type != block.fProperties.end() && type->second == "top") {
+        if (BlockProperty(block, "type") == "top") {
             return false;
         }
     } else if (IsStairs(block)) {
-        auto half = block.fProperties.find("half");
-        if (half != block.fProperties.end() && half->second == "top") {
+        if (BlockProperty(block, "half") == "top") {
             return false;
         }
     } else if (block.fName == "scaffolding") {
         return false;
+    } else if (IsTrapdoor(block)) {
+        if (BlockProperty(block, "open") == "close") {
+            return false;
+        }
     }
+    
+    if (BlockProperty(block, "waterlogged") == "false") {
+        return false;
+    }
+
     return true;
 }
 
@@ -257,6 +271,9 @@ public:
             return Air();
         }
         if (plantBlocks.find(blockId) != plantBlocks.end()) {
+            return Air();
+        }
+        if (IsTrapdoor(block) && BlockProperty(block, "open") == "true") {
             return Air();
         }
         return Opaque();
