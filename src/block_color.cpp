@@ -666,6 +666,17 @@ static std::map<mcfile::blocks::BlockId, Color> const blockToColor {
     {mcfile::blocks::minecraft::warped_door, kColorPlanksWarped},
     {mcfile::blocks::minecraft::target, Color(183, 49, 49)},
 
+    // bugfix for 1.16
+    {mcfile::blocks::minecraft::twisting_vines_plant, Color(17, 153, 131)},
+    {mcfile::blocks::minecraft::warped_wart_block, Color(17, 153, 131)},
+    {mcfile::blocks::minecraft::quartz_bricks, kColorQuartz},
+    {mcfile::blocks::minecraft::stripped_crimson_hyphae, Color(148, 61, 97)},
+    {mcfile::blocks::minecraft::stripped_warped_hyphae, Color(67, 159, 157)},
+    {mcfile::blocks::minecraft::crimson_sign, kColorPlanksCrimson},
+    {mcfile::blocks::minecraft::warped_sign, kColorPlanksWarped},
+    {mcfile::blocks::minecraft::polished_blackstone_pressure_plate, kColorStonePolishedBlack},
+    {mcfile::blocks::minecraft::polished_blackstone_button, kColorStonePolishedBlack},
+
     // plants
     {mcfile::blocks::minecraft::lily_pad, Color(0, 123, 0)},
     {mcfile::blocks::minecraft::wheat, Color(0, 123, 0)},
