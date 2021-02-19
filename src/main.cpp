@@ -87,8 +87,8 @@ static shared_ptr<Chunk> LoadChunk(fs::path const& chunkFilePath, int chunkX, in
     int const fLength = fs::file_size(chunkFilePath);
     vector<uint8_t> buffer(fLength);
     {
-        auto stream = make_shared<mcfile::detail::FileStream>(chunkFilePath.string());
-        mcfile::detail::StreamReader reader(stream);
+        auto stream = make_shared<mcfile::stream::FileInputStream>(chunkFilePath.string());
+        mcfile::stream::InputStreamReader reader(stream);
         if (!reader.read(buffer)) {
             return nullptr;
         }
@@ -97,9 +97,9 @@ static shared_ptr<Chunk> LoadChunk(fs::path const& chunkFilePath, int chunkX, in
         }
     }
     auto root = make_shared<nbt::CompoundTag>();
-    auto bs = make_shared<mcfile::detail::ByteStream>(buffer);
+    auto bs = make_shared<mcfile::stream::ByteStream>(buffer);
     vector<uint8_t>().swap(buffer);
-    auto sr = make_shared<mcfile::detail::StreamReader>(bs);
+    auto sr = make_shared<mcfile::stream::InputStreamReader>(bs);
     root->read(*sr);
     if (!root->valid()) {
         return nullptr;
