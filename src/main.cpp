@@ -126,7 +126,7 @@ static float BrightnessByDistanceFromLandmark(float distance) {
 
 static int SkyLevel(int dimension, Chunk const& chunk, int x, int z) {
     if (dimension != -1) {
-        return 255;
+        return chunk.maxBlockY();
     }
     for (int y = 127; y >= 0; y--) {
         auto block = chunk.blockIdAt(x, y, z);
@@ -361,14 +361,15 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
             for (int z = sZ; z <= eZ; z++) {
                 for (int x = sX; x <= eX; x++) {
                     fill_n(translucentBlockPillar.begin(), translucentBlockPillar.size(), TranslucentBlock::Air());
-                    int const yini = SkyLevel(dimension, *chunk, x, z);
+                    int const maxY = SkyLevel(dimension, *chunk, x, z);
+                    int const minY = chunk->minBlockY();
                     int pillarIndex = 0;
                     int pillarHeight = 0;
                     shared_ptr<Block const> opaqueBlock = nullptr;
                     
                     int elevation = 0;
                     int waterDepth = 0;
-                    for (int y = yini; y >= 0; y--, pillarIndex++) {
+                    for (int y = maxY; y >= minY; y--, pillarIndex++) {
                         auto const& block = chunk->blockAt(x, y, z);
                         if (block) {
                             if (IsWaterLike(*block)) {
