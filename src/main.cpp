@@ -406,16 +406,19 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
         }
     }
 
-    for (int x = 1; x < width; x++) {
-        int z1 = 1;
-        int i1 = z1 * width + x;
-        int i0 = x;
+    // 北側のチャンクがまだ無い場合に備えて, 1 ブロック南の高度をデフォルト値に使う.
+    for (int x = minX + 1; x < minX + 512; x++) {
+        int const z = minZ;
+        int i1 = (z + 1 - minZ) * width + (x - minX);
+        int i0 = (z - minZ) * width + (x - minX);
         altitude[i0] = altitude[i1];
     }
-    for (int z = 1; z < height; z++) {
-        int x1 = 1;
-        int i1 = z * width + x1;
-        int i0 = (z - 1) * width + x1;
+
+    // 西側のチャンクがまだ無い場合に備えて, 1 ブロック東の高度をデフォルト値に使う.
+    for (int z = minZ + 1; z < minZ + 512; z++) {
+        int const x = minX;
+        int i1 = (z - minZ) * width + (x + 1 - minX);
+        int i0 = (z - minZ) * width + (x - minX);
         altitude[i0] = altitude[i1];
     }
 
