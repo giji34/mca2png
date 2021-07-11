@@ -10,7 +10,7 @@
 
 using namespace std;
 using namespace mcfile;
-namespace fs = mcfile::detail::filesystem;
+namespace fs = std::filesystem;
 
 static std::set<mcfile::blocks::BlockId> const plantBlocks = {
     mcfile::blocks::minecraft::beetroots,
@@ -104,7 +104,7 @@ static shared_ptr<Chunk> LoadChunk(fs::path const& chunkFilePath, int chunkX, in
     if (!root->valid()) {
         return nullptr;
     }
-    return Chunk::MakeChunk(chunkX, chunkZ, *root);
+    return Chunk::MakeChunk(chunkX, chunkZ, root);
 }
 
 static string ChunkFileName(int chunkX, int chunkZ) {

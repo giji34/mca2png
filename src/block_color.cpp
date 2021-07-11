@@ -66,7 +66,7 @@ static std::map<mcfile::blocks::BlockId, Color> const blockToColor {
     {mcfile::blocks::minecraft::farmland, Color(149, 108, 76)},
     {mcfile::blocks::minecraft::oak_fence, kColorPlanksOak},
     {mcfile::blocks::minecraft::cobblestone_stairs, Color(111, 111, 111)},
-    {mcfile::blocks::minecraft::grass_path, Color(167, 138, 73)},
+    {mcfile::blocks::minecraft::dirt_path, Color(167, 138, 73)},
     {mcfile::blocks::minecraft::birch_fence, kColorPlanksBirch},
     {mcfile::blocks::minecraft::birch_planks, kColorPlanksBirch},
     {mcfile::blocks::minecraft::birch_stairs, kColorPlanksBirch},
