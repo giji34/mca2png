@@ -274,9 +274,10 @@ static T Clamp(T v, T min, T max) {
 }
 
 static int Altitude(int dimension, Chunk const& chunk, int x, int z) {
-    int const yini = SkyLevel(dimension, chunk, x, z);
+    int const maxY = SkyLevel(dimension, chunk, x, z);
+    int const minY = chunk.minBlockY();
     int waterDepth = 0;
-    for (int y = yini; y >= 0; y--) {
+    for (int y = maxY; y >= minY; y--) {
         auto const& block = chunk.blockAt(x, y, z);
         if (!block) {
             continue;
