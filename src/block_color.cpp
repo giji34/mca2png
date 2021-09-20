@@ -470,7 +470,7 @@ static std::map<mcfile::blocks::BlockId, Color> const blockToColor {
     {mcfile::blocks::minecraft::bone_block, Color(199, 195, 165)},
     {mcfile::blocks::minecraft::brown_concrete, Color(95, 58, 31)},
     {mcfile::blocks::minecraft::cake, Color(238, 229, 203)},
-    {mcfile::blocks::minecraft::cauldron, Color(53, 52, 52)},
+    {mcfile::blocks::minecraft::water_cauldron, Color(53, 52, 52)},
     {mcfile::blocks::minecraft::chain_command_block, Color(159, 193, 178)},
     {mcfile::blocks::minecraft::chiseled_quartz_block, kColorQuartz},
     {mcfile::blocks::minecraft::chiseled_red_sandstone, kColorRedSandstone},
@@ -721,7 +721,7 @@ static std::map<mcfile::blocks::BlockId, Color> const blockToColor {
     {mcfile::blocks::minecraft::cocoa, Color(109, 112, 52)},
 };
 
-bool BlockColor(mcfile::Block const& block, Color &result) {
+bool BlockColor(mcfile::je::Block const& block, Color &result) {
     auto blockId = mcfile::blocks::FromName(block.fName);
     if (blockId == mcfile::blocks::unknown) {
         return false;

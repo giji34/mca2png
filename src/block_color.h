@@ -3,4 +3,4 @@
 #include "color.h"
 #include <minecraft-file.hpp>
 
-extern bool BlockColor(mcfile::Block const& block, Color &result);
+extern bool BlockColor(mcfile::je::Block const& block, Color &result);

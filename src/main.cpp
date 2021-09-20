@@ -10,6 +10,7 @@
 
 using namespace std;
 using namespace mcfile;
+using namespace mcfile::je;
 namespace fs = std::filesystem;
 
 static std::set<mcfile::blocks::BlockId> const plantBlocks = {
@@ -87,12 +88,12 @@ static shared_ptr<Chunk> LoadChunk(fs::path const& chunkFilePath, int chunkX, in
     int const fLength = fs::file_size(chunkFilePath);
     vector<uint8_t> buffer(fLength);
     {
-        auto stream = make_shared<mcfile::stream::FileInputStream>(chunkFilePath.string());
+        auto stream = make_shared<mcfile::stream::FileInputStream>(chunkFilePath);
         mcfile::stream::InputStreamReader reader(stream);
         if (!reader.read(buffer)) {
             return nullptr;
         }
-        if (!mcfile::detail::Compression::decompress(buffer)) {
+        if (!mcfile::Compression::decompress(buffer)) {
             return nullptr;
         }
     }
@@ -100,8 +101,7 @@ static shared_ptr<Chunk> LoadChunk(fs::path const& chunkFilePath, int chunkX, in
     auto bs = make_shared<mcfile::stream::ByteStream>(buffer);
     vector<uint8_t>().swap(buffer);
     auto sr = make_shared<mcfile::stream::InputStreamReader>(bs);
-    root->read(*sr);
-    if (!root->valid()) {
+    if (!root->read(*sr)) {
         return nullptr;
     }
     return Chunk::MakeChunk(chunkX, chunkZ, root);

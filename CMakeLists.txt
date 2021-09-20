@@ -3,11 +3,16 @@ project(mca2png)
 
 include(CheckCCompilerFlag)
 
+if (NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 20)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  set(CMAKE_CXX_EXTENSIONS OFF)
+endif()
+
 include_directories(ext/libminecraft-file/include
                     ext/zopfli/src/zopflipng/lodepng
                     ext/colormap-shaders/include
                     ext/zopfli/src/zopflipng)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 add_executable(mca2png src/main.cpp
                        src/block_color.cpp
                        src/block_color.h
