@@ -310,7 +310,7 @@ static Color DiffuseBlockColor(Color blockColor, int waterDepth, vector<Color> c
     return result;
 }
 
-static void RegionToPng2(string world, int dimension, int regionX, int regionZ, string png) {
+static void RegionToPng2(string world, int dimension, int regionX, int regionZ, string png, bool zopfli) {
     int const width = 513;
     int const height = 513;
     
@@ -518,38 +518,35 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
         return;
     }
 
-    unsigned char *out = NULL;
-    size_t outsize = 0;
-    if (lodepng_encode32(&out, &outsize, (unsigned char const*)img.data(), 512, 512) != 0) {
-        return;
-    }
-    if (out == NULL) {
+    vector<unsigned char> in;
+    copy_n((unsigned char*)img.data(), img.size() * sizeof(uint32_t), back_inserter(in));
+    vector<uint32_t>().swap(img);
+    
+    vector<unsigned char> out;
+    if (lodepng::encode(out, in, 512, 512) != 0) {
         return;
     }
 
-    vector<unsigned char> pngBuffer;
-    pngBuffer.reserve(outsize);
-    copy_n(out, outsize, back_inserter(pngBuffer));
-    free(out);
-    out = NULL;
-
-    vector<unsigned char> result;
-    ZopfliPNGOptions opt;
-    opt.verbose = false;
-    if (ZopfliPNGOptimize(pngBuffer, opt, false, &result) != 0) {
-        return;
+    if (zopfli) {
+        vector<unsigned char> result;
+        ZopfliPNGOptions opt;
+        opt.verbose = false;
+        if (ZopfliPNGOptimize(out, opt, false, &result) != 0) {
+            return;
+        }
+        out.swap(result);
     }
     
     FILE* file = fopen(png.c_str(), "wb");
     if (!file) {
         return;
     }
-    fwrite(result.data(), 1, result.size(), file);
+    fwrite(out.data(), 1, out.size(), file);
     fclose(file);
 }
 
 static void PrintDescription() {
-    cerr << "mca2png -w [world directory] -x [region x] -z [region z] -o [output directory] -l [path to 'landmarks.tsv'] -d [dimension; o:overworld, n:nether, e:theEnd]" << endl;
+    cerr << "mca2png -w [world directory] -x [region x] -z [region z] -o [output directory] -l [path to 'landmarks.tsv'] -d [dimension; o:overworld, n:nether, e:theEnd] [-m(minify png with zopfli)]" << endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -559,10 +556,11 @@ int main(int argc, char *argv[]) {
     int dimension = 100;
     int x = INT_MAX;
     int z = INT_MAX;
+    bool zopfli = false;
 
     int opt;
     opterr = 0;
-    while ((opt = getopt(argc, argv, "w:x:z:o:l:d:")) != -1) {
+    while ((opt = getopt(argc, argv, "w:x:z:o:l:d:m")) != -1) {
         switch (opt) {
             case 'w':
                 input = optarg;
@@ -599,6 +597,9 @@ int main(int argc, char *argv[]) {
                     return 1;
                 }
                 break;
+            case 'm':
+                zopfli = true;
+                break;
             default:
                 PrintDescription();
                 return 1;
@@ -625,7 +626,7 @@ int main(int argc, char *argv[]) {
     ostringstream name;
     name << "r." << x << "." << z << ".png";
     fs::path png = fs::path(output).append(name.str());
-    RegionToPng2(input, dimension, x, z, png.string());
+    RegionToPng2(input, dimension, x, z, png.string(), zopfli);
 
     return 0;
 }

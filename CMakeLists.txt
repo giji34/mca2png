@@ -18,7 +18,9 @@ add_executable(mca2png src/main.cpp
                        src/block_color.h
                        src/color.h
                        ext/libminecraft-file/include/minecraft-file.hpp
+                       ext/zopfli/src/zopflipng/lodepng/lodepng.h
                        ext/zopfli/src/zopflipng/lodepng/lodepng.cpp
+                       ext/zopfli/src/zopflipng/lodepng/lodepng_util.h
                        ext/zopfli/src/zopflipng/lodepng/lodepng_util.cpp
                        ext/zopfli/src/zopflipng/zopflipng_lib.cc
                        ext/zopfli/src/zopflipng/zopflipng_lib.h
