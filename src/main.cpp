@@ -395,7 +395,10 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
                             auto mapped = colormap.getColor(v);
                             opaqueBlockColor = Color::FromFloat(mapped.r, mapped.g, mapped.b, 1);
                         } else {
-                            BlockColor(*opaqueBlock, opaqueBlockColor);
+                            auto color = BlockColor(*opaqueBlock);
+                            if (color) {
+                                opaqueBlockColor = *color;
+                            }
                         }
                     }
                     Color c = DiffuseBlockColor(opaqueBlockColor, waterDepth, translucentBlockPillar, pillarHeight);

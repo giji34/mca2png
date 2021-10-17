@@ -721,25 +721,23 @@ static std::map<mcfile::blocks::BlockId, Color> const blockToColor {
     {mcfile::blocks::minecraft::cocoa, Color(109, 112, 52)},
 };
 
-bool BlockColor(mcfile::je::Block const& block, Color &result) {
+std::optional<Color> BlockColor(mcfile::je::Block const& block) {
     auto blockId = mcfile::blocks::FromName(block.fName);
     if (blockId == mcfile::blocks::unknown) {
-        return false;
+        return std::nullopt;
     }
     if (blockId == mcfile::blocks::minecraft::campfire) {
         auto lit = block.fProperties.find("lit");
         if (lit != block.fProperties.end() && lit->second == "true") {
-            result = Color(199, 107, 3);
+            return Color(199, 107, 3);
         } else {
-            result = kColorPlanksOak;
+            return kColorPlanksOak;
         }
-        return true;
     }
     auto it = blockToColor.find(blockId);
     if (it == blockToColor.end()) {
-        return false;
+        return std::nullopt;
     } else {
-        result = it->second;
-        return true;
+        return it->second;
     }
 }
