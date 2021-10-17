@@ -39,6 +39,15 @@ static Color const kColorSpruceLog(141, 118, 71);
 static Color const kColorChest(141, 118, 71);
 static Color const kColorWitherSkeltonSkull(31, 31, 31);
 static Color const kColorZombieHead(61, 104, 45);
+static Color const kColorDeepslate(89, 89, 89);
+static Color const kColorCobbledDeepslate(73, 73, 78);
+static Color const kColorPolishedDeepslate(44, 44, 44);
+static Color const kColorCopper(224, 128, 107);
+static Color const kColorCopperExposed(166, 118, 97);
+static Color const kColorCopperWeathered(121, 181, 151);
+static Color const kColorCopperOxidized(78, 169, 142);
+static Color const kColorDeepslateBricks(87, 87, 87);
+static Color const kColorDeepslateTiles = kColorPolishedDeepslate;
 
 static std::map<mcfile::blocks::BlockId, Color> const blockToColor {
     {mcfile::blocks::minecraft::stone, Color(111, 111, 111)},
@@ -719,6 +728,55 @@ static std::map<mcfile::blocks::BlockId, Color> const blockToColor {
     {mcfile::blocks::minecraft::bamboo, Color(67, 103, 8)},
     {mcfile::blocks::minecraft::sea_pickle, Color(106, 113, 42)},
     {mcfile::blocks::minecraft::cocoa, Color(109, 112, 52)},
+    
+    // 1.17
+    {mcfile::blocks::minecraft::deepslate, kColorDeepslate},
+    {mcfile::blocks::minecraft::cobbled_deepslate, kColorCobbledDeepslate},
+    {mcfile::blocks::minecraft::polished_deepslate, kColorPolishedDeepslate},
+    {mcfile::blocks::minecraft::calcite, Color(214, 216, 212)},
+    {mcfile::blocks::minecraft::tuff, Color(92, 92, 81)},
+    {mcfile::blocks::minecraft::dripstone_block, Color(129, 98, 85)},
+    {mcfile::blocks::minecraft::raw_iron_block, Color(173, 140, 118)},
+    {mcfile::blocks::minecraft::raw_copper_block, Color(130, 76, 58)},
+    {mcfile::blocks::minecraft::raw_gold_block, Color(235, 162, 26)},
+    {mcfile::blocks::minecraft::amethyst_block, Color(164, 119, 238)},
+    {mcfile::blocks::minecraft::amethyst_cluster, Color(164, 119, 238)},
+    {mcfile::blocks::minecraft::budding_amethyst, Color(164, 119, 238)},
+    {mcfile::blocks::minecraft::deepslate_coal_ore, kColorDeepslate},
+    {mcfile::blocks::minecraft::deepslate_iron_ore, kColorDeepslate},
+    {mcfile::blocks::minecraft::copper_ore, kColorStone},
+    {mcfile::blocks::minecraft::deepslate_copper_ore, kColorDeepslate},
+    {mcfile::blocks::minecraft::deepslate_gold_ore, kColorDeepslate},
+    {mcfile::blocks::minecraft::deepslate_redstone_ore, kColorDeepslate},
+    {mcfile::blocks::minecraft::deepslate_emerald_ore, kColorDeepslate},
+    {mcfile::blocks::minecraft::deepslate_lapis_ore, kColorDeepslate},
+    {mcfile::blocks::minecraft::deepslate_diamond_ore, kColorDeepslate},
+    {mcfile::blocks::minecraft::copper_block, kColorCopper},
+    {mcfile::blocks::minecraft::exposed_copper, kColorCopperExposed},
+    {mcfile::blocks::minecraft::weathered_copper, kColorCopperWeathered},
+    {mcfile::blocks::minecraft::oxidized_copper, kColorCopperOxidized},
+    {mcfile::blocks::minecraft::cut_copper, kColorCopper},
+    {mcfile::blocks::minecraft::exposed_cut_copper, kColorCopperExposed},
+    {mcfile::blocks::minecraft::weathered_cut_copper, kColorCopperExposed},
+    {mcfile::blocks::minecraft::oxidized_cut_copper, kColorCopperOxidized},
+    {mcfile::blocks::minecraft::waxed_copper_block, kColorCopper},
+    {mcfile::blocks::minecraft::waxed_exposed_copper, kColorCopperExposed},
+    {mcfile::blocks::minecraft::waxed_weathered_copper, kColorCopperWeathered},
+    {mcfile::blocks::minecraft::waxed_oxidized_copper, kColorCopperOxidized},
+    {mcfile::blocks::minecraft::waxed_cut_copper, kColorCopper},
+    {mcfile::blocks::minecraft::waxed_exposed_cut_copper, kColorCopperExposed},
+    {mcfile::blocks::minecraft::waxed_weathered_cut_copper, kColorCopperWeathered},
+    {mcfile::blocks::minecraft::waxed_oxidized_cut_copper, kColorCopperOxidized},
+    {mcfile::blocks::minecraft::moss_block, Color(111, 144, 44)},
+    {mcfile::blocks::minecraft::infested_deepslate, kColorDeepslate},
+    {mcfile::blocks::minecraft::deepslate_bricks, kColorDeepslateBricks},
+    {mcfile::blocks::minecraft::cracked_deepslate_bricks, kColorDeepslateBricks},
+    {mcfile::blocks::minecraft::deepslate_tiles, kColorDeepslateTiles},
+    {mcfile::blocks::minecraft::cracked_deepslate_tiles, kColorDeepslateTiles},
+    {mcfile::blocks::minecraft::chiseled_deepslate, kColorDeepslate},
+    {mcfile::blocks::minecraft::smooth_basalt, Color(115, 115, 115)},
+    {mcfile::blocks::minecraft::powder_snow, Color(252, 252, 252)},
+    {mcfile::blocks::minecraft::rooted_dirt, Color(171, 124, 100)},
 };
 
 std::optional<Color> BlockColor(mcfile::je::Block const& block) {
