@@ -7,3 +7,6 @@
 [submodule "ext/zopfli"]
 	path = ext/zopfli
 	url = https://github.com/google/zopfli.git
+[submodule "ext/thread-pool"]
+	path = ext/thread-pool
+	url = https://github.com/mtrebi/thread-pool.git

@@ -6,6 +6,7 @@
 #include "zopflipng_lib.h"
 #include "lodepng.h"
 #include "colormap/colormap.h"
+#include <ThreadPool.h>
 #include "block_color.h"
 
 using namespace std;
@@ -310,6 +311,84 @@ static Color DiffuseBlockColor(Color blockColor, int waterDepth, vector<Color> c
     return result;
 }
 
+struct ChunkResult {
+    unordered_map<size_t, uint8_t> altitude;
+    unordered_map<size_t, Color> pixels;
+};
+
+static optional<ChunkResult> Render(string world, int dimension, int chunkX, int chunkZ, int minX, int minZ, int width) {
+    Block const kGrassBlock(blocks::minecraft::grass_block);
+    Block const kUnknownBlock(blocks::unknown);
+    vector<Color> translucentBlockPillar(256, Color(0, 0, 0, 255));
+
+    fs::path chunkFilePath = fs::path(world).append("chunk").append(ChunkFileName(chunkX, chunkZ));
+    if (!fs::exists(chunkFilePath)) {
+        return nullopt;
+    }
+    shared_ptr<Chunk> chunk = LoadChunk(chunkFilePath, chunkX, chunkZ);
+    if (!chunk) {
+        return nullopt;
+    }
+    
+    ChunkResult result;
+
+    colormap::kbinani::Altitude colormap;
+    int const sZ = chunk->minBlockZ();
+    int const eZ = chunk->maxBlockZ();
+    int const sX = chunk->minBlockX();
+    int const eX = chunk->maxBlockX();
+    for (int z = sZ; z <= eZ; z++) {
+        for (int x = sX; x <= eX; x++) {
+            fill_n(translucentBlockPillar.begin(), translucentBlockPillar.size(), TranslucentBlock::Air());
+            int const maxY = SkyLevel(dimension, *chunk, x, z);
+            int const minY = chunk->minBlockY();
+            int pillarIndex = 0;
+            int pillarHeight = 0;
+            shared_ptr<Block const> opaqueBlock = nullptr;
+            
+            int elevation = 0;
+            int waterDepth = 0;
+            for (int y = maxY; y >= minY; y--, pillarIndex++) {
+                auto const& block = chunk->blockAt(x, y, z);
+                if (block) {
+                    if (IsWaterLike(*block)) {
+                        waterDepth++;
+                    }
+                    auto tb = TranslucentBlock::FromBlock(*block);
+                    if (tb.fA >= 1) {
+                        pillarHeight = pillarIndex;
+                        elevation = y;
+                        opaqueBlock = block;
+                        break;
+                    }
+                    translucentBlockPillar[pillarIndex] = tb;
+                } else {
+                    translucentBlockPillar[pillarIndex] = TranslucentBlock::Air();
+                }
+            }
+            Color opaqueBlockColor(0, 0, 0);
+            if (opaqueBlock) {
+                if (opaqueBlock->fName == kGrassBlock.fName) {
+                    float const v = Clamp((elevation - 63.0) / 193.0, 0.0, 1.0);
+                    auto mapped = colormap.getColor(v);
+                    opaqueBlockColor = Color::FromFloat(mapped.r, mapped.g, mapped.b, 1);
+                } else {
+                    auto color = BlockColor(*opaqueBlock);
+                    if (color) {
+                        opaqueBlockColor = *color;
+                    }
+                }
+            }
+            Color c = DiffuseBlockColor(opaqueBlockColor, waterDepth, translucentBlockPillar, pillarHeight);
+            int const idx = (z - minZ) * width + (x - minX);
+            result.pixels[idx] = c;
+            result.altitude[idx] = elevation;
+        }
+    }
+    
+    return result;
+}
+
 static void RegionToPng2(string world, int dimension, int regionX, int regionZ, string png, bool zopfli) {
     int const width = 513;
     int const height = 513;
@@ -333,82 +412,35 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
     
     vector<uint8_t> altitude(width * height, 0);
     vector<Color> pixels(width * height, Color::FromFloat(0, 0, 0, 1));
-    vector<Color> translucentBlockPillar(256, Color(0, 0, 0, 255));
 
     int const minX = regionX * 512 - 1;
     int const minZ = regionZ * 512 - 1;
-    
-    Block const kGrassBlock(blocks::minecraft::grass_block);
-    Block const kUnknownBlock(blocks::unknown);
+        
+    vector<future<optional<ChunkResult>>> futures;
+    unsigned int concurrency = thread::hardware_concurrency();
+    ThreadPool pool(concurrency);
+    pool.init();
     
     for (int localChunkZ = 0; localChunkZ < 32; localChunkZ++) {
         int const chunkZ = regionZ * 32 + localChunkZ;
         for (int localChunkX = 0; localChunkX < 32; localChunkX++) {
             int const chunkX = regionX * 32 + localChunkX;
-            fs::path chunkFilePath = fs::path(world).append("chunk").append(ChunkFileName(chunkX, chunkZ));
-            if (!fs::exists(chunkFilePath)) {
-                continue;
-            }
-            shared_ptr<Chunk> chunk = LoadChunk(chunkFilePath, chunkX, chunkZ);
-            if (!chunk) {
-                continue;
-            }
-
-            colormap::kbinani::Altitude colormap;
-            int const sZ = chunk->minBlockZ();
-            int const eZ = chunk->maxBlockZ();
-            int const sX = chunk->minBlockX();
-            int const eX = chunk->maxBlockX();
-            for (int z = sZ; z <= eZ; z++) {
-                for (int x = sX; x <= eX; x++) {
-                    fill_n(translucentBlockPillar.begin(), translucentBlockPillar.size(), TranslucentBlock::Air());
-                    int const maxY = SkyLevel(dimension, *chunk, x, z);
-                    int const minY = chunk->minBlockY();
-                    int pillarIndex = 0;
-                    int pillarHeight = 0;
-                    shared_ptr<Block const> opaqueBlock = nullptr;
-                    
-                    int elevation = 0;
-                    int waterDepth = 0;
-                    for (int y = maxY; y >= minY; y--, pillarIndex++) {
-                        auto const& block = chunk->blockAt(x, y, z);
-                        if (block) {
-                            if (IsWaterLike(*block)) {
-                                waterDepth++;
-                            }
-                            auto tb = TranslucentBlock::FromBlock(*block);
-                            if (tb.fA >= 1) {
-                                pillarHeight = pillarIndex;
-                                elevation = y;
-                                opaqueBlock = block;
-                                break;
-                            }
-                            translucentBlockPillar[pillarIndex] = tb;
-                        } else {
-                            translucentBlockPillar[pillarIndex] = TranslucentBlock::Air();
-                        }
-                    }
-                    Color opaqueBlockColor(0, 0, 0);
-                    if (opaqueBlock) {
-                        if (opaqueBlock->fName == kGrassBlock.fName) {
-                            float const v = Clamp((elevation - 63.0) / 193.0, 0.0, 1.0);
-                            auto mapped = colormap.getColor(v);
-                            opaqueBlockColor = Color::FromFloat(mapped.r, mapped.g, mapped.b, 1);
-                        } else {
-                            auto color = BlockColor(*opaqueBlock);
-                            if (color) {
-                                opaqueBlockColor = *color;
-                            }
-                        }
-                    }
-                    Color c = DiffuseBlockColor(opaqueBlockColor, waterDepth, translucentBlockPillar, pillarHeight);
-                    int const idx = (z - minZ) * width + (x - minX);
-                    pixels[idx] = c;
-                    altitude[idx] = elevation;
-                }
-            }
+            futures.emplace_back(move(pool.submit(Render, world, dimension, chunkX, chunkZ, minX, minZ, width)));
         }
     }
+    for (auto &f : futures) {
+        auto result = f.get();
+        if (!result) {
+            continue;
+        }
+        for (auto it : result->altitude) {
+            altitude[it.first] = it.second;
+        }
+        for (auto it : result->pixels) {
+            pixels[it.first] = it.second;
+        }
+    }
+    pool.shutdown();
 
     // 北側のチャンクがまだ無い場合に備えて, 1 ブロック南の高度をデフォルト値に使う.
     for (int x = minX + 1; x < minX + 512; x++) {

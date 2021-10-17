@@ -14,6 +14,8 @@ struct HSV {
 
 class Color {
 public:
+    Color() : fR(0), fG(0), fB(0), fA(1) {}
+    
     Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
         : fR(r / 255.f)
         , fG(g / 255.f)

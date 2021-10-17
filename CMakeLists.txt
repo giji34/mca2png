@@ -12,7 +12,8 @@ endif()
 include_directories(ext/libminecraft-file/include
                     ext/zopfli/src/zopflipng/lodepng
                     ext/colormap-shaders/include
-                    ext/zopfli/src/zopflipng)
+                    ext/zopfli/src/zopflipng
+                    ext/thread-pool/include)
 add_executable(mca2png src/main.cpp
                        src/block_color.cpp
                        src/block_color.h
