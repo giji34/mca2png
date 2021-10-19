@@ -6,7 +6,7 @@
 #include "zopflipng_lib.h"
 #include "lodepng.h"
 #include "colormap/colormap.h"
-#include <ThreadPool.h>
+#include <hwm/task/task_queue.hpp>
 #include "block_color.h"
 
 using namespace std;
@@ -416,20 +416,20 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
     int const minX = regionX * 512 - 1;
     int const minZ = regionZ * 512 - 1;
         
-    vector<future<optional<ChunkResult>>> futures;
+    deque<future<optional<ChunkResult>>> futures;
     unsigned int concurrency = thread::hardware_concurrency();
-    ThreadPool pool(concurrency);
-    pool.init();
+    hwm::task_queue pool(concurrency);
     
     for (int localChunkZ = 0; localChunkZ < 32; localChunkZ++) {
         int const chunkZ = regionZ * 32 + localChunkZ;
         for (int localChunkX = 0; localChunkX < 32; localChunkX++) {
             int const chunkX = regionX * 32 + localChunkX;
-            futures.emplace_back(move(pool.submit(Render, world, dimension, chunkX, chunkZ, minX, minZ, width)));
+            futures.emplace_back(move(pool.enqueue(Render, world, dimension, chunkX, chunkZ, minX, minZ, width)));
         }
     }
-    for (auto &f : futures) {
-        auto result = f.get();
+    while (!futures.empty()) {
+        auto result = futures.front().get();
+        futures.pop_front();
         if (!result) {
             continue;
         }
@@ -440,7 +440,6 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
             pixels[it.first] = it.second;
         }
     }
-    pool.shutdown();
 
     // 北側のチャンクがまだ無い場合に備えて, 1 ブロック南の高度をデフォルト値に使う.
     for (int x = minX + 1; x < minX + 512; x++) {
