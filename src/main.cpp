@@ -85,35 +85,6 @@ struct Landmark {
 static int const kVisibleRadius = 128;
 static vector<Landmark> kLandmarks;
 
-static shared_ptr<Chunk> LoadChunk(fs::path const& chunkFilePath, int chunkX, int chunkZ) {
-    int const fLength = fs::file_size(chunkFilePath);
-    vector<uint8_t> buffer(fLength);
-    {
-        auto stream = make_shared<mcfile::stream::FileInputStream>(chunkFilePath);
-        mcfile::stream::InputStreamReader reader(stream);
-        if (!reader.read(buffer)) {
-            return nullptr;
-        }
-        if (!mcfile::Compression::decompress(buffer)) {
-            return nullptr;
-        }
-    }
-    auto root = make_shared<nbt::CompoundTag>();
-    auto bs = make_shared<mcfile::stream::ByteStream>(buffer);
-    vector<uint8_t>().swap(buffer);
-    auto sr = make_shared<mcfile::stream::InputStreamReader>(bs);
-    if (!root->read(*sr)) {
-        return nullptr;
-    }
-    return Chunk::MakeChunk(chunkX, chunkZ, root);
-}
-
-static string ChunkFileName(int chunkX, int chunkZ) {
-    ostringstream name;
-    name << "c." << chunkX << "." << chunkZ << ".nbt.z";
-    return name.str();
-}
-
 static float BrightnessByDistanceFromLandmark(float distance) {
     if (distance <= kVisibleRadius) {
         return 1;
@@ -140,18 +111,15 @@ static int SkyLevel(int dimension, Chunk const& chunk, int x, int z) {
 }
 
 static bool IsSlab(Block const& block) {
-    auto const found = block.fName.rfind("_slab");
-    return found == block.fName.size() - 5;
+    return block.fName.ends_with("_slab");
 }
 
 static bool IsStairs(Block const& block) {
-    auto const found = block.fName.rfind("_stairs");
-    return found == block.fName.size() - 7;
+    return block.fName.ends_with("_stairs");
 }
 
 static bool IsTrapdoor(Block const& block) {
-    auto const found = block.fName.rfind("_trapdoor");
-    return found == block.fName.size() - 9;
+    return block.fName.ends_with("_trapdoor");
 }
 
 static bool IsWaterLike(Block const& block) {
@@ -319,17 +287,17 @@ struct ChunkResult {
 static optional<ChunkResult> Render(string world, int dimension, int chunkX, int chunkZ, int minX, int minZ, int width) {
     Block const kGrassBlock(blocks::minecraft::grass_block);
     Block const kUnknownBlock(blocks::unknown);
-    vector<Color> translucentBlockPillar(256, Color(0, 0, 0, 255));
 
-    fs::path chunkFilePath = fs::path(world).append("chunk").append(ChunkFileName(chunkX, chunkZ));
+    fs::path chunkFilePath = fs::path(world) / "chunk" / Region::GetDefaultCompressedChunkNbtFileName(chunkX, chunkZ);
     if (!fs::exists(chunkFilePath)) {
         return nullopt;
     }
-    shared_ptr<Chunk> chunk = LoadChunk(chunkFilePath, chunkX, chunkZ);
+    shared_ptr<Chunk> chunk = Chunk::LoadFromCompressedChunkNbtFile(chunkFilePath, chunkX, chunkZ);
     if (!chunk) {
         return nullopt;
     }
-    
+    vector<Color> translucentBlockPillar(chunk->maxBlockY() - chunk->minBlockY() + 1, Color(0, 0, 0, 255));
+
     ChunkResult result;
 
     colormap::kbinani::Altitude colormap;
@@ -461,11 +429,11 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
     for (int lcx = 0; lcx < 32; lcx++) {
         int const chunkX = regionX * 32 + lcx;
         int const chunkZ = (regionZ - 1) * 32 + 31;
-        fs::path chunkFilePath = fs::path(world).append("chunk").append(ChunkFileName(chunkX, chunkZ));
+        fs::path chunkFilePath = fs::path(world) / "chunk" / Region::GetDefaultCompressedChunkNbtFileName(chunkX, chunkZ);
         if (!fs::exists(chunkFilePath)) {
             continue;
         }
-        shared_ptr<Chunk> chunk = LoadChunk(chunkFilePath, chunkX, chunkZ);
+        shared_ptr<Chunk> chunk = Chunk::LoadFromCompressedChunkNbtFile(chunkFilePath, chunkX, chunkZ);
         int const z = chunk->maxBlockZ();
         for (int lbx = 0; lbx < 16; lbx++) {
             int const x = chunk->minBlockX() + lbx;
@@ -478,11 +446,11 @@ static void RegionToPng2(string world, int dimension, int regionX, int regionZ, 
     for (int lcz = 0; lcz < 32; lcz++) {
         int const chunkX = (regionX - 1) * 32 + 31;
         int const chunkZ = regionZ * 32 + lcz;
-        fs::path chunkFilePath = fs::path(world).append("chunk").append(ChunkFileName(chunkX, chunkZ));
+        fs::path chunkFilePath = fs::path(world) / "chunk" / Region::GetDefaultCompressedChunkNbtFileName(chunkX, chunkZ);
         if (!fs::exists(chunkFilePath)) {
             continue;
         }
-        shared_ptr<Chunk> chunk = LoadChunk(chunkFilePath, chunkX, chunkZ);
+        shared_ptr<Chunk> chunk = Chunk::LoadFromCompressedChunkNbtFile(chunkFilePath, chunkX, chunkZ);
         int const x = chunk->maxBlockX();
         for (int lbz = 0; lbz < 16; lbz++) {
             int const z = chunk->minBlockZ() + lbz;
