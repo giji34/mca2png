@@ -14,68 +14,6 @@ using namespace mcfile;
 using namespace mcfile::je;
 namespace fs = std::filesystem;
 
-static std::set<mcfile::blocks::BlockId> const plantBlocks = {
-    mcfile::blocks::minecraft::beetroots,
-    mcfile::blocks::minecraft::carrots,
-    mcfile::blocks::minecraft::potatoes,
-    mcfile::blocks::minecraft::seagrass,
-    mcfile::blocks::minecraft::tall_seagrass,
-    mcfile::blocks::minecraft::fern,
-    mcfile::blocks::minecraft::azure_bluet,
-    mcfile::blocks::minecraft::kelp,
-    mcfile::blocks::minecraft::large_fern,
-    mcfile::blocks::minecraft::kelp_plant,
-};
-
-static std::set<mcfile::blocks::BlockId> const transparentBlocks = {
-    mcfile::blocks::minecraft::air,
-    mcfile::blocks::minecraft::cave_air,
-    mcfile::blocks::minecraft::vine, // Color(56, 95, 31)}, //
-    mcfile::blocks::minecraft::ladder, // Color(255, 255, 255)},
-    mcfile::blocks::minecraft::glass_pane,
-    mcfile::blocks::minecraft::glass,
-    mcfile::blocks::minecraft::brown_wall_banner,
-    mcfile::blocks::minecraft::redstone_wall_torch,
-    mcfile::blocks::minecraft::wall_torch,
-    mcfile::blocks::minecraft::redstone_torch,
-    mcfile::blocks::minecraft::torch,
-    mcfile::blocks::minecraft::barrier,
-    mcfile::blocks::minecraft::black_banner,
-    mcfile::blocks::minecraft::black_wall_banner,
-    mcfile::blocks::minecraft::blue_banner,
-    mcfile::blocks::minecraft::blue_wall_banner,
-    mcfile::blocks::minecraft::brown_banner,
-    mcfile::blocks::minecraft::gray_wall_banner,
-    mcfile::blocks::minecraft::cyan_banner,
-    mcfile::blocks::minecraft::cyan_wall_banner,
-    mcfile::blocks::minecraft::gray_banner,
-    mcfile::blocks::minecraft::green_banner,
-    mcfile::blocks::minecraft::green_wall_banner,
-    mcfile::blocks::minecraft::light_blue_banner,
-    mcfile::blocks::minecraft::light_blue_wall_banner,
-    mcfile::blocks::minecraft::light_gray_banner,
-    mcfile::blocks::minecraft::light_gray_wall_banner,
-    mcfile::blocks::minecraft::lime_banner,
-    mcfile::blocks::minecraft::lime_wall_banner,
-    mcfile::blocks::minecraft::magenta_banner,
-    mcfile::blocks::minecraft::magenta_wall_banner,
-    mcfile::blocks::minecraft::orange_banner,
-    mcfile::blocks::minecraft::orange_wall_banner,
-    mcfile::blocks::minecraft::pink_banner,
-    mcfile::blocks::minecraft::pink_wall_banner,
-    mcfile::blocks::minecraft::purple_banner,
-    mcfile::blocks::minecraft::purple_wall_banner,
-    mcfile::blocks::minecraft::red_banner,
-    mcfile::blocks::minecraft::red_wall_banner,
-    mcfile::blocks::minecraft::white_banner,
-    mcfile::blocks::minecraft::white_wall_banner,
-    mcfile::blocks::minecraft::yellow_banner,
-    mcfile::blocks::minecraft::yellow_wall_banner,
-    mcfile::blocks::minecraft::void_air,
-    mcfile::blocks::minecraft::structure_void,
-    mcfile::blocks::minecraft::tripwire,
-};
-
 struct Landmark {
     int dimension;
     int x;
@@ -222,10 +160,10 @@ public:
             default:
                 break;
         }
-        if (transparentBlocks.find(blockId) != transparentBlocks.end()) {
+        if (IsTransparentBlock(blockId)) {
             return Air();
         }
-        if (plantBlocks.find(blockId) != plantBlocks.end()) {
+        if (IsPlantBlock(blockId)) {
             return Air();
         }
         if (IsTrapdoor(block) && block.property("open") == "true") {
