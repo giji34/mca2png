@@ -78,7 +78,7 @@ std::unordered_map<mcfile::blocks::BlockId, Color> const blockToColor {
     {mcfile::blocks::minecraft::birch_stairs, kColorPlanksBirch},
     {mcfile::blocks::minecraft::dark_oak_fence, kColorPlanksDarkOak},
     {mcfile::blocks::minecraft::dark_oak_log, Color(101, 75, 50)},
-    {mcfile::blocks::minecraft::dark_oak_planks, Color(191,152,63)}, //
+    {mcfile::blocks::minecraft::dark_oak_planks, kColorPlanksOak}, //
     {mcfile::blocks::minecraft::dark_oak_slab, kColorPlanksDarkOak},
     {mcfile::blocks::minecraft::dark_oak_stairs, kColorPlanksDarkOak},
     {mcfile::blocks::minecraft::dark_oak_trapdoor, Color(141, 118, 71)},
